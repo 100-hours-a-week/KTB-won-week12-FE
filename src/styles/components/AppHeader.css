@@ -1,0 +1,223 @@
+.app-header {
+  isolation: isolate;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--header-height);
+  border-bottom: 1px solid var(--color-line);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+.app-header__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.app-header__title::before {
+  width: 25px;
+  height: 29px;
+  border-radius: 50% 50% 50% 8px;
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 6px #ffedd5;
+  content: '';
+  transform: rotate(-45deg);
+}
+
+.app-header__back-button {
+  position: absolute;
+  top: 50%;
+  left: max(24px, calc(50% - 480px));
+  width: 40px;
+  height: 40px;
+  padding: 0 0 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--color-text);
+  font-size: 30px;
+  line-height: 30px;
+  transform: translateY(-50%);
+}
+
+.app-header__profile,
+.app-header__profile-skeleton,
+.app-header__auth-links {
+  position: absolute;
+  top: 50%;
+  right: max(24px, calc(50% - 480px));
+  transform: translateY(-50%);
+}
+
+.app-header__profile {
+  z-index: 1;
+}
+
+.app-header__profile-button,
+.app-header__profile-skeleton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.app-header__profile-button {
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid #fff;
+  background: #ffedd5;
+  box-shadow: 0 0 0 1px var(--color-line);
+}
+
+.app-header__profile-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-header__profile-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fdba74, #f97316);
+}
+
+.app-header__profile-skeleton {
+  background: linear-gradient(90deg, #f2f4f7, #e4e7ec, #f2f4f7);
+  background-size: 200% 100%;
+  animation: header-profile-loading 1.2s ease-in-out infinite;
+}
+
+.app-header__auth-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header__auth-links a {
+  padding: 8px 11px;
+  border-radius: 9px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.app-header__auth-links a.is-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.app-header__profile-menu {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: 190px;
+  padding: 7px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 35px rgba(17, 24, 39, 0.14);
+}
+
+.app-header__profile-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px 11px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.app-header__profile-summary strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header__profile-summary span {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header__profile-menu-item {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-text);
+  font-size: 12px;
+  text-align: left;
+}
+
+.app-header__profile-menu-item:hover:not(:disabled) {
+  background: var(--color-background);
+}
+
+.app-header__profile-menu-item:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.app-header__profile-menu-item.is-logout {
+  color: #dc2626;
+}
+
+.app-header__profile-error {
+  margin: 4px 6px;
+  color: #dc2626;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+@keyframes header-profile-loading {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header__title {
+    font-size: 18px;
+  }
+
+  .app-header__profile,
+  .app-header__profile-skeleton,
+  .app-header__auth-links {
+    right: 14px;
+  }
+
+  .app-header__profile-button,
+  .app-header__profile-skeleton {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-header__back-button {
+    left: 14px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-header__auth-links {
+    gap: 2px;
+  }
+
+  .app-header__auth-links a {
+    padding: 7px 8px;
+    font-size: 11px;
+  }
+}

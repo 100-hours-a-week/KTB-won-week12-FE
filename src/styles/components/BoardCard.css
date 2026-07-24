@@ -1,0 +1,110 @@
+.board-card-link {
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.board-card-link:focus-visible {
+  border-radius: var(--radius-md);
+  outline: 3px solid rgba(249, 115, 22, 0.3);
+  outline-offset: 3px;
+}
+
+.board-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.board-card:hover {
+  border-color: #cbd8ec;
+  box-shadow: 0 14px 34px rgba(30, 45, 70, 0.11);
+  transform: translateY(-3px);
+}
+
+.board-card__thumbnail {
+  position: relative;
+  height: 176px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #dce5ef, #aab8c8);
+}
+
+.board-card__thumbnail::before {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  content: '사고 현장 사진';
+}
+
+.board-card__body {
+  padding: 20px;
+}
+
+.board-card__title {
+  margin: 0 0 9px;
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 1.4;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.board-card__footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-line);
+}
+
+.board-card__author-image {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fed7aa, #f97316);
+  object-fit: cover;
+}
+
+.board-card__author-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-card__date {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .board-card__thumbnail {
+    height: 150px;
+  }
+}

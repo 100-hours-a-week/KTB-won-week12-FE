@@ -1,0 +1,268 @@
+.account-form {
+  width: 100%;
+}
+
+.account-profile {
+  margin-bottom: 18px;
+}
+
+.account-form__label {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.account-profile-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 104px;
+  height: 104px;
+  margin: 0 auto 10px;
+  overflow: hidden;
+  border: 2px dashed #fdba74;
+  border-radius: 50%;
+  background: #fff7ed;
+  color: var(--color-primary);
+  font-size: 34px;
+  cursor: pointer;
+}
+
+.account-profile-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-profile-preview__overlay {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(67, 35, 13, 0.65);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.account-profile__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.account-profile-preview:has(+ .account-profile__input:focus-visible) {
+  outline: 3px solid rgba(249, 115, 22, 0.25);
+  outline-offset: 3px;
+}
+
+.account-profile__selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: -2px 0 5px;
+  color: var(--color-muted);
+  font-size: 10px;
+}
+
+.account-profile__selection span {
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-profile__selection button {
+  padding: 2px 5px;
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.account-form__group {
+  margin-bottom: 17px;
+}
+
+.account-form__group label {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.account-form__group input,
+.account-form__readonly {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid #d5dce7;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.account-form__group input {
+  background: #fff;
+  color: var(--color-text);
+}
+
+.account-form__input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.account-form__input-row input {
+  min-width: 0;
+}
+
+.account-form__check-button {
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid #fdba74;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.account-form__check-button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: #ffedd5;
+}
+
+.account-form__check-button:disabled {
+  border-color: var(--color-line);
+  background: #f8fafc;
+  color: #98a2b3;
+  cursor: default;
+}
+
+.account-form__group input:focus {
+  border-color: var(--color-primary);
+}
+
+.account-form__group input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.account-form__readonly {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  border-color: var(--color-line);
+  background: #f8fafc;
+  color: var(--color-muted);
+}
+
+.account-form__helper {
+  min-height: 17px;
+  margin: 6px 0 0;
+  color: #dc2626;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.account-form__helper.is-guide {
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.account-form__helper.is-available {
+  color: #15803d;
+}
+
+.account-form__message {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.account-form__message.is-error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.account-form__message.is-success {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.account-form__submit {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.account-form__submit:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.account-form__submit:disabled {
+  background: #cbd2dc;
+}
+
+.account-form-status {
+  margin: 0;
+  padding: 40px 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.account-form-status.is-error {
+  color: #dc2626;
+}
+
+.account-form-status button {
+  display: block;
+  margin: 12px auto 0;
+  padding: 8px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 700;
+}
+
+.account-withdraw-button {
+  align-self: center;
+  margin-top: 16px;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.account-withdraw-button:hover {
+  color: #dc2626;
+  text-decoration: underline;
+}
+
+.account-withdraw-notice {
+  margin: 8px 0 0;
+  color: #b45309;
+  font-size: 11px;
+  line-height: 1.5;
+}

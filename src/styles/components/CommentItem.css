@@ -1,0 +1,124 @@
+.comment-item {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.comment-item:last-child {
+  border-bottom: 0;
+}
+
+.comment-item__image {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fed7aa, #f97316);
+  object-fit: cover;
+}
+
+.comment-item__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-bottom: 7px;
+}
+
+.comment-item__author {
+  font-size: 13px;
+}
+
+.comment-item__date {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.comment-item__content {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.comment-item__actions {
+  display: flex;
+  gap: 5px;
+}
+
+.comment-item__actions button {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.comment-item__actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.comment-item__actions button.is-delete {
+  color: #dc2626;
+}
+
+.comment-item__edit textarea {
+  width: 100%;
+  min-height: 84px;
+  padding: 12px;
+  resize: vertical;
+  border: 1px solid var(--color-line);
+  border-radius: 9px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.comment-item__edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.comment-item__edit-actions button {
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.comment-item__edit-actions button.is-primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.comment-item__edit-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.comment-item__error {
+  margin: 7px 0 0;
+  color: #dc2626;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .comment-item {
+    grid-template-columns: 32px 1fr;
+    padding: 18px;
+  }
+
+  .comment-item__actions {
+    grid-column: 2;
+  }
+}

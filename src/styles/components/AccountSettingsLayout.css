@@ -1,0 +1,135 @@
+.account-settings-page {
+  min-height: calc(100vh - var(--header-height));
+  padding: 48px 24px 80px;
+}
+
+.account-settings-shell {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  width: min(100%, 920px);
+  min-height: 600px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(96, 50, 16, 0.1);
+}
+
+.account-settings-brand {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: column;
+  padding: 48px 42px;
+  background: linear-gradient(145deg, #fff7ed, #ffedd5);
+}
+
+.account-settings-brand__logo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 25px;
+  letter-spacing: -0.05em;
+}
+
+.account-settings-brand__logo > span {
+  width: 34px;
+  height: 40px;
+  border-radius: 50% 50% 50% 8px;
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 8px #fff7ed;
+  transform: rotate(-45deg);
+}
+
+.account-settings-brand__copy > p {
+  margin: 0 0 13px;
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.account-settings-brand__copy h2 {
+  margin: 0 0 16px;
+  font-size: 31px;
+  line-height: 1.35;
+  letter-spacing: -0.05em;
+}
+
+.account-settings-brand__copy > span {
+  color: #7c4a27;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.account-settings-nav {
+  display: grid;
+  gap: 7px;
+}
+
+.account-settings-nav a {
+  padding: 11px 13px;
+  border-radius: 10px;
+  color: #9a5a2d;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.account-settings-nav a.active {
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-primary-dark);
+}
+
+.account-settings-panel {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  padding: 52px;
+}
+
+.account-settings-panel__eyebrow {
+  margin: 0 0 8px;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.account-settings-panel > h2 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+}
+
+.account-settings-panel__description {
+  margin: 10px 0 28px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .account-settings-page {
+    padding: 24px 14px 60px;
+  }
+
+  .account-settings-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .account-settings-brand {
+    gap: 30px;
+    padding: 28px 24px;
+  }
+
+  .account-settings-brand__copy {
+    display: none;
+  }
+
+  .account-settings-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .account-settings-panel {
+    padding: 34px 24px;
+  }
+}

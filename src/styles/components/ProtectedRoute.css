@@ -1,0 +1,7 @@
+.protected-route-status {
+  display: grid;
+  min-height: 50vh;
+  place-items: center;
+  color: var(--color-muted);
+  font-size: 14px;
+}
