@@ -10,5 +10,12 @@ export default defineConfig({
     globals: true,
     clearMocks: true,
     restoreMocks: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/main.jsx', 'src/**/*.{test,spec}.{js,jsx}'],
+    },
   },
 });
