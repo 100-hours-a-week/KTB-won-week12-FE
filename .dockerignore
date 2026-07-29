@@ -1,0 +1,19 @@
+# Git 및 IDE 설정
+.git
+.gitattributes
+.idea
+*.iml
+
+# 로컬 의존성과 빌드·테스트 결과
+node_modules
+dist
+coverage
+
+# 운영체제와 편집기 임시 파일
+.DS_Store
+*.log
+
+# Docker 이미지 생성에 필요하지 않은 파일
+Dockerfile
+AGENTS.md
+README.md
