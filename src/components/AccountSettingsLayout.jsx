@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import AppHeader from './AppHeader';
+import BrandLogo from './BrandLogo';
 import '../styles/components/AccountSettingsLayout.css';
 
 export default function AccountSettingsLayout({
@@ -17,10 +18,7 @@ export default function AccountSettingsLayout({
       <main className="account-settings-page">
         <div className="account-settings-shell">
           <aside className="account-settings-brand">
-            <div className="account-settings-brand__logo">
-              <span aria-hidden="true" />
-              <strong>크맵</strong>
-            </div>
+            <BrandLogo className="account-settings-brand__logo" />
 
             <div className="account-settings-brand__copy">
               <p>MY KMAP</p>

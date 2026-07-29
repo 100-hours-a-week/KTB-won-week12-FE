@@ -13,23 +13,11 @@
 }
 
 .app-header__title {
-  display: flex;
-  align-items: center;
-  gap: 9px;
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
 }
 
-.app-header__title::before {
-  width: 25px;
-  height: 29px;
-  border-radius: 50% 50% 50% 8px;
-  background: var(--color-primary);
-  box-shadow: inset 0 0 0 6px #ffedd5;
-  content: '';
-  transform: rotate(-45deg);
+.app-header__title .brand-logo {
+  width: 112px;
 }
 
 .app-header__back-button {

@@ -7,6 +7,7 @@ import {
 } from '../api/authApi';
 import { AUTH_STATUS, useAuth } from '../auth/AuthContext';
 import AppHeader from '../components/AppHeader';
+import BrandLogo from '../components/BrandLogo';
 import Portal from '../components/Portal';
 import useAvailabilityCheck from '../hooks/useAvailabilityCheck';
 import { getUserFriendlyErrorMessage } from '../utils/errorMessage';
@@ -325,10 +326,7 @@ export default function SignupPage() {
       <main className="signup-page">
         <div className="signup-shell">
           <aside className="signup-brand">
-            <div className="signup-brand__logo">
-              <span className="signup-brand__mark" aria-hidden="true" />
-              <strong>크맵</strong>
-            </div>
+            <BrandLogo className="signup-brand__logo" />
             <div className="signup-brand__copy">
               <p>크맵과 함께 시작하세요</p>
               <h2>

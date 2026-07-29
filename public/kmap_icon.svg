@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 360" role="img" aria-labelledby="title">
+  <title id="title">크맵</title>
+  <defs>
+    <linearGradient id="orange" x1="90" y1="70" x2="520" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF9B42"/>
+      <stop offset="0.55" stop-color="#FF7A1A"/>
+      <stop offset="1" stop-color="#F05A16"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(48 42)">
+    <path d="M72 220C118 270 226 278 310 244C347 229 381 207 408 177" fill="none" stroke="url(#orange)" stroke-width="20" stroke-linecap="round"/>
+    <g fill="url(#orange)">
+      <path d="M54 145c5-26 14-50 31-70 10-12 25-19 41-19h83c17 0 32 7 42 20 16 20 26 43 30 69l15 7c10 5 16 15 16 27v37c0 17-13 30-30 30h-8v13c0 9-7 16-16 16h-19c-9 0-16-7-16-16v-13H107v13c0 9-7 16-16 16H72c-9 0-16-7-16-16v-13h-7c-17 0-30-13-30-30v-37c0-12 7-23 18-28l17-6zm34-60c-8 12-14 26-18 42h195c-4-16-10-30-19-42-6-8-15-12-25-12H114c-10 0-20 4-26 12z"/>
+      <circle cx="84" cy="188" r="19" fill="#FFF7EF"/>
+      <circle cx="248" cy="188" r="19" fill="#FFF7EF"/>
+      <rect x="111" y="159" width="111" height="19" rx="9.5" fill="#FFF7EF"/>
+    </g>
+    <path d="M92 37c44-25 101-25 145 0" fill="none" stroke="url(#orange)" stroke-width="15" stroke-linecap="round"/>
+    <path d="M116 65c29-16 65-16 94 0" fill="none" stroke="url(#orange)" stroke-width="15" stroke-linecap="round"/>
+    <g transform="translate(349 38)">
+      <path d="M93 0C42 0 1 41 1 92c0 65 92 152 92 152s92-87 92-152C185 41 144 0 93 0zm0 126c-23 0-42-19-42-42s19-42 42-42 42 19 42 42-19 42-42 42z" fill="url(#orange)"/>
+      <circle cx="93" cy="84" r="23" fill="#FFF7EF"/>
+    </g>
+  </g>
+</svg>

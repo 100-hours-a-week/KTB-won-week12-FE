@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../api/authApi';
 import { AUTH_STATUS, useAuth } from '../auth/AuthContext';
 import AppHeader from '../components/AppHeader';
+import BrandLogo from '../components/BrandLogo';
 import { getUserFriendlyErrorMessage } from '../utils/errorMessage';
 import { validateEmail, validatePassword } from '../utils/validation';
 import '../styles/pages/LoginPage.css';
@@ -129,27 +130,7 @@ export default function LoginPage() {
       <main className="login-page">
         <div className="login-shell">
           <section className="login-brand" aria-label="크맵 서비스 소개">
-            <div className="login-brand__logo">
-              <svg
-                className="login-brand__mark"
-                viewBox="0 0 64 76"
-                aria-hidden="true"
-              >
-                <path
-                  fill="#f97316"
-                  d="M32 2C15.4 2 2 15.4 2 32c0 22.5 30 42 30 42s30-19.5 30-42C62 15.4 48.6 2 32 2Z"
-                />
-                <circle cx="32" cy="31" r="17" fill="#fff7ed" />
-                <path
-                  d="M27 44 31 18h3l4 26M30 32h6"
-                  fill="none"
-                  stroke="#f97316"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <strong>크맵</strong>
-            </div>
+            <BrandLogo className="login-brand__logo" />
 
             <div className="login-brand__copy">
               <p className="login-brand__eyebrow">

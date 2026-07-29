@@ -39,17 +39,7 @@
 }
 
 .login-brand__logo {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: -0.06em;
-}
-
-.login-brand__mark {
-  width: 54px;
-  height: 64px;
+  width: 330px;
   filter: drop-shadow(0 8px 12px rgba(194, 65, 12, 0.18));
 }
 
@@ -262,13 +252,8 @@
     display: none;
   }
 
-  .login-brand__mark {
-    width: 42px;
-    height: 50px;
-  }
-
   .login-brand__logo {
-    font-size: 25px;
+    width: 270px;
   }
 
   .login-form-section {

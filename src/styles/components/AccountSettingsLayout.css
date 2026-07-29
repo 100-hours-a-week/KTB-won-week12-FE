@@ -25,20 +25,8 @@
 }
 
 .account-settings-brand__logo {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  font-size: 25px;
-  letter-spacing: -0.05em;
-}
-
-.account-settings-brand__logo > span {
-  width: 34px;
-  height: 40px;
-  border-radius: 50% 50% 50% 8px;
-  background: var(--color-primary);
-  box-shadow: inset 0 0 0 8px #fff7ed;
-  transform: rotate(-45deg);
+  width: 245px;
+  filter: drop-shadow(0 8px 12px rgba(194, 65, 12, 0.14));
 }
 
 .account-settings-brand__copy > p {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AUTH_STATUS, useAuth } from '../auth/AuthContext';
 import { getUserFriendlyErrorMessage } from '../utils/errorMessage';
+import BrandLogo from './BrandLogo';
 import '../styles/components/AppHeader.css';
 
 export default function AppHeader({ showProfile = true, onBack }) {
@@ -52,7 +53,9 @@ export default function AppHeader({ showProfile = true, onBack }) {
         </button>
       )}
 
-      <h1 className="app-header__title">크맵</h1>
+      <h1 className="app-header__title">
+        <BrandLogo />
+      </h1>
 
       {showProfile && status === AUTH_STATUS.LOADING && (
         <span
