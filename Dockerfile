@@ -8,6 +8,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+
+# 테스트와 커버리지 최소 기준을 통과한 소스만 운영 정적 파일로 빌드한다.
+RUN npm run test:coverage
 RUN npm run build
 
 # 브라우저에 정적 파일을 제공하고 API 요청을 백엔드로 중계한다.
