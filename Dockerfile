@@ -16,6 +16,10 @@ RUN npm run build
 # 브라우저에 정적 파일을 제공하고 API 요청을 백엔드로 중계한다.
 FROM nginx:stable-alpine
 
+# Compose 없이 이미지만 실행해도 기존 backend 서비스로 연결되도록 기본 upstream을 포함한다.
+# 운영에서는 같은 경로에 EC2의 활성 백엔드 설정 파일을 mount한다.
+RUN mkdir -p /etc/nginx/runtime-upstreams
+COPY nginx/active-backend.conf /etc/nginx/runtime-upstreams/active-backend.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
