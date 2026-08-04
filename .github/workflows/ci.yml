@@ -14,7 +14,8 @@ permissions:
 
 concurrency:
   group: frontend-ci-${{ github.ref }}
-  cancel-in-progress: true
+  # PR 검증은 최신 실행만 남기되, main 배포는 컨테이너 교체 중 취소하지 않는다.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test-and-build:
@@ -70,3 +71,137 @@ jobs:
             ${{ vars.DOCKERHUB_USERNAME }}/board-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push-image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # GitHub OIDC 토큰으로 AWS IAM Role의 임시 자격 증명을 발급받는다.
+      id-token: write
+
+    steps:
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: kmap-frontend-deploy-${{ github.run_id }}
+
+      - name: Get runner public IPv4 address
+        id: runner-ip
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          runner_ip="$(curl -4 --fail --silent --show-error https://checkip.amazonaws.com | tr -d '[:space:]')"
+
+          if [[ ! "${runner_ip}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "Could not determine a valid runner IPv4 address." >&2
+            exit 1
+          fi
+
+          echo "cidr=${runner_ip}/32" >> "${GITHUB_OUTPUT}"
+
+      - name: Temporarily allow runner SSH access
+        id: allow-ssh
+        shell: bash
+        env:
+          SECURITY_GROUP_ID: ${{ vars.EC2_SECURITY_GROUP_ID }}
+          RUNNER_CIDR: ${{ steps.runner-ip.outputs.cidr }}
+          RULE_DESCRIPTION: github-actions-fe-${{ github.run_id }}
+        run: |
+          set -Eeuo pipefail
+
+          rule_id="$(aws ec2 authorize-security-group-ingress \
+            --group-id "${SECURITY_GROUP_ID}" \
+            --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=${RUNNER_CIDR},Description=${RULE_DESCRIPTION}}]" \
+            --query 'SecurityGroupRules[0].SecurityGroupRuleId' \
+            --output text)"
+
+          if [[ -z "${rule_id}" || "${rule_id}" == "None" ]]; then
+            echo "AWS did not return the temporary security group rule ID." >&2
+            exit 1
+          fi
+
+          echo "rule-id=${rule_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: Configure SSH client
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+
+          install -d -m 700 "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" > "${HOME}/.ssh/kmap-deploy-key"
+          printf '%s\n' "${SSH_KNOWN_HOSTS}" > "${HOME}/.ssh/known_hosts"
+          chmod 600 "${HOME}/.ssh/kmap-deploy-key" "${HOME}/.ssh/known_hosts"
+
+      - name: Wait for temporary SSH rule propagation
+        shell: bash
+        env:
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USERNAME: ${{ vars.EC2_USERNAME }}
+        run: |
+          set -Eeuo pipefail
+
+          for attempt in {1..12}; do
+            if ssh \
+              -i "${HOME}/.ssh/kmap-deploy-key" \
+              -o BatchMode=yes \
+              -o ConnectTimeout=5 \
+              -o StrictHostKeyChecking=yes \
+              "${EC2_USERNAME}@${EC2_HOST}" true; then
+              exit 0
+            fi
+
+            echo "SSH is not ready yet (${attempt}/12). Retrying in 5 seconds..."
+            sleep 5
+          done
+
+          echo "Could not connect to EC2 through the temporary SSH rule." >&2
+          exit 1
+
+      - name: Deploy frontend container
+        shell: bash
+        env:
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USERNAME: ${{ vars.EC2_USERNAME }}
+          EC2_DEPLOY_PATH: ${{ vars.EC2_DEPLOY_PATH }}
+          FRONTEND_IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          ssh \
+            -i "${HOME}/.ssh/kmap-deploy-key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=yes \
+            "${EC2_USERNAME}@${EC2_HOST}" \
+            "bash -s -- '${EC2_DEPLOY_PATH}' '${FRONTEND_IMAGE_TAG}'" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+
+          readonly deploy_path="$1"
+          readonly frontend_image_tag="$2"
+
+          cd "${deploy_path}"
+          git pull --ff-only origin main
+          ./scripts/deploy-frontend.sh "${frontend_image_tag}"
+          REMOTE_SCRIPT
+
+      - name: Revoke temporary runner SSH access
+        if: always() && steps.allow-ssh.outputs.rule-id != ''
+        shell: bash
+        env:
+          SECURITY_GROUP_ID: ${{ vars.EC2_SECURITY_GROUP_ID }}
+          SECURITY_GROUP_RULE_ID: ${{ steps.allow-ssh.outputs.rule-id }}
+        run: |
+          set -Eeuo pipefail
+
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${SECURITY_GROUP_ID}" \
+            --security-group-rule-ids "${SECURITY_GROUP_RULE_ID}"
