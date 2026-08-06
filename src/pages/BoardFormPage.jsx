@@ -5,8 +5,15 @@ import {
   getBoard,
   updateBoard,
 } from '../api/boardApi';
+import { uploadBoardImages } from '../api/uploadApi'; // Presigned URL을 발급받아 S3에 이미지를 업로드하는 API
 import AppHeader from '../components/AppHeader';
 import Portal from '../components/Portal';
+import { getUserFriendlyErrorMessage } from '../utils/errorMessage'; // 이미지 처리·업로드·게시글 저장 오류를 사용자 문구로 변환
+import {
+  BOARD_IMAGE_MAX_COUNT,
+  prepareBoardImages,
+  validateBoardImageFiles,
+} from '../utils/imageProcessing'; // 이미지 개수·형식 검증과 WebP 썸네일 생성에 필요한 값과 함수
 import '../styles/pages/BoardFormPage.css';
 
 const EMPTY_VALUES = {
@@ -32,14 +39,32 @@ function validateContent(content) {
   return content.trim() ? '' : '내용을 입력해주세요.';
 }
 
-function createPayload(values, imageItems) {
+function createPayload(values, images) { // 백엔드 게시글 생성·수정 API에 전송할 요청 본문 생성
   return {
     title: values.title.trim(),
     content: values.content.trim(),
-    // S3 도입 전에는 백엔드에 이미 저장된 HTTP 이미지 URL만 다시 전송
-    imageUrls: imageItems
-      .filter((image) => image.kind === 'stored')
-      .map((image) => image.src),
+    // Presigned URL은 만료되므로 게시글에는 S3 Object Key 쌍만 전송
+    images,
+  };
+}
+
+function storedImageKeys(image) { // 기존 이미지에서 DB에 다시 저장할 원본·썸네일 Object Key 쌍만 추출
+  return {
+    originalObjectKey: image.originalObjectKey,
+    thumbnailObjectKey: image.thumbnailObjectKey,
+  };
+}
+
+function createFormSnapshot(values, imageItems) { // 수정 화면의 최초 상태와 현재 상태를 비교할 snapshot 생성
+  return {
+    title: values.title.trim(),
+    content: values.content.trim(),
+    // 기존 이미지는 Key로, 아직 업로드하지 않은 로컬 이미지는 화면 내부 ID로 변경 감지
+    images: imageItems.map((image) =>
+      image.kind === 'stored'
+        ? storedImageKeys(image)
+        : { localImageId: image.id },
+    ),
   };
 }
 
@@ -49,6 +74,8 @@ export default function BoardFormPage({ mode }) {
   const nextImageIdRef = useRef(1);
   const imageInputRef = useRef(null);
   const localPreviewUrlsRef = useRef(new Set());
+  // 페이지 이동 시 진행 중인 이미지 업로드와 게시글 저장을 중단하기 위한 Controller 보관
+  const submitAbortControllerRef = useRef(null);
   const isEditMode = mode === 'edit';
 
   const boardId = Number(boardIdParam);
@@ -75,12 +102,15 @@ export default function BoardFormPage({ mode }) {
   });
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // idle → processing(썸네일 생성) → uploading(S3 PUT) → saving(게시글 API) 순서
+  const [submitStage, setSubmitStage] = useState('idle');
   const [submitError, setSubmitError] = useState('');
 
   const titleError = validateTitle(values.title);
   const contentError = validateContent(values.content);
-  const payload = useMemo(
-    () => createPayload(values, imageItems),
+  // 제목·내용·이미지 구성 중 하나가 바뀌었는지 확인할 비교용 객체를 입력 변경 시에만 재생성
+  const formSnapshot = useMemo(
+    () => createFormSnapshot(values, imageItems),
     [imageItems, values],
   );
   const activePreview = imageItems.find(
@@ -88,10 +118,11 @@ export default function BoardFormPage({ mode }) {
   );
 
   const isFormValid = !titleError && !contentError && !imageError;
+  // 신규 작성은 항상 제출 가능하고 수정은 최초 snapshot과 달라진 경우에만 제출 가능
   const isDirty =
     !isEditMode ||
     (initialPayload != null &&
-      JSON.stringify(payload) !== JSON.stringify(initialPayload));
+      JSON.stringify(formSnapshot) !== JSON.stringify(initialPayload));
   const canSubmit =
     loadState === 'success' && isFormValid && isDirty && !isSubmitting;
 
@@ -102,6 +133,8 @@ export default function BoardFormPage({ mode }) {
         URL.revokeObjectURL(previewUrl);
       });
       localPreviewUrlsRef.current.clear();
+      // 페이지 이동 중인 이미지 업로드와 게시글 저장 요청을 함께 중단
+      submitAbortControllerRef.current?.abort();
     },
     [],
   );
@@ -155,16 +188,21 @@ export default function BoardFormPage({ mode }) {
           title: board.title,
           content: board.content,
         };
+        // 백엔드의 이미지 응답을 미리보기와 Key 재사용에 필요한 화면 상태로 변환
         const nextImageItems = board.images.map((image, index) => ({
           id: `stored-image-${image.imageId}`,
           kind: 'stored',
-          src: image.imageUrl,
+          // 수정 화면과 확대 미리보기에서는 원본 Presigned GET URL 사용
+          src: image.originalImageUrl,
           name: `기존 이미지 ${index + 1}`,
+          originalObjectKey: image.originalObjectKey,
+          thumbnailObjectKey: image.thumbnailObjectKey,
         }));
 
         setValues(nextValues);
         setImageItems(nextImageItems);
-        setInitialPayload(createPayload(nextValues, nextImageItems));
+        // 이후 제목·내용·이미지 변경 여부를 비교하기 위해 최초 수정 상태 보관
+        setInitialPayload(createFormSnapshot(nextValues, nextImageItems));
         setLoadState('success');
       } catch (error) {
         if (error.name === 'AbortError') {
@@ -194,19 +232,31 @@ export default function BoardFormPage({ mode }) {
     setSubmitError('');
   }
 
-  function handleImageFiles(event) {
+  function handleImageFiles(event) { // 사용자가 새로 선택한 로컬 이미지 검증 및 미리보기 상태 추가
+    // FileList는 배열 메소드를 바로 사용할 수 없으므로 일반 배열로 변환
     const selectedFiles = Array.from(event.target.files ?? []);
-    const imageFiles = selectedFiles.filter((file) =>
-      file.type.startsWith('image/'),
-    );
 
-    setImageError(
-      imageFiles.length === selectedFiles.length
-        ? ''
-        : '이미지 파일만 첨부할 수 있습니다.',
-    );
+    try {
+      // 기존 이미지와 새로 선택한 이미지를 합쳐 게시글당 최대 5장 제한 확인
+      if (imageItems.length + selectedFiles.length > BOARD_IMAGE_MAX_COUNT) {
+        throw new Error('이미지는 최대 5장까지 첨부할 수 있습니다.');
+      }
 
-    const nextLocalImages = imageFiles.map((file) => {
+      // S3 요청 전에 MIME 타입, 파일명, 원본 크기를 공통 정책으로 검증
+      validateBoardImageFiles(selectedFiles);
+    } catch (error) {
+      // 하나라도 검증에 실패하면 이번에 선택한 파일 전체를 추가하지 않음
+      setImageError(error.message || '이미지를 첨부하지 못했습니다.');
+
+      if (imageInputRef.current) {
+        // 같은 파일을 수정 후 다시 선택할 수 있도록 input 값 초기화
+        imageInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // 선택한 File마다 브라우저 메모리의 임시 URL을 만들어 업로드 전 미리보기 제공
+    const nextLocalImages = selectedFiles.map((file) => {
       const previewUrl = URL.createObjectURL(file);
       localPreviewUrlsRef.current.add(previewUrl);
 
@@ -215,13 +265,17 @@ export default function BoardFormPage({ mode }) {
         kind: 'local',
         src: previewUrl,
         name: file.name,
+        // 제출 시 Canvas 썸네일 생성과 S3 PUT에 사용할 원본 File 보존
+        file,
       };
     });
 
+    // 기존 등록 이미지 다음에 새 로컬 이미지를 선택 순서대로 추가
     setImageItems((currentImages) => [
       ...currentImages,
       ...nextLocalImages,
     ]);
+    setImageError('');
     setSubmitError('');
 
     // 동일한 파일을 다시 선택해도 change 이벤트가 발생하도록 초기화
@@ -230,13 +284,14 @@ export default function BoardFormPage({ mode }) {
     }
   }
 
-  function removeImage(imageId) {
+  function removeImage(imageId) { // 화면과 최종 게시글 요청에서 선택한 이미지 제거
     setImageItems((currentImages) => {
       const targetImage = currentImages.find(
         (image) => image.id === imageId,
       );
 
       if (targetImage?.kind === 'local') {
+        // 로컬 이미지만 blob URL을 사용하므로 제거 즉시 브라우저 메모리 해제
         URL.revokeObjectURL(targetImage.src);
         localPreviewUrlsRef.current.delete(targetImage.src);
       }
@@ -252,7 +307,7 @@ export default function BoardFormPage({ mode }) {
     setSubmitError('');
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event) { // 이미지 처리·S3 업로드 완료 후 게시글 생성 또는 수정
     event.preventDefault();
     setHasSubmitted(true);
     setTouchedFields({ title: true, content: true });
@@ -262,9 +317,49 @@ export default function BoardFormPage({ mode }) {
       return;
     }
 
+    // Presigned URL 요청, S3 PUT, 게시글 저장에서 동일한 중단 신호 사용
+    const abortController = new AbortController();
+    submitAbortControllerRef.current = abortController;
     setIsSubmitting(true);
 
     try {
+      // 수정 시 기존 이미지는 업로드하지 않고 Key를 재사용하며 새 로컬 파일만 처리
+      const localImageItems = imageItems.filter(
+        (image) => image.kind === 'local',
+      );
+      let uploadedImageKeys = [];
+
+      if (localImageItems.length > 0) {
+        // 원본 File을 Canvas에서 축소·인코딩해 각 이미지의 WebP 썸네일 생성
+        setSubmitStage('processing');
+        const preparedImages = await prepareBoardImages(
+          localImageItems.map((image) => image.file),
+        );
+
+        // 원본·썸네일 메타데이터로 URL을 발급받고 브라우저가 S3에 직접 PUT
+        setSubmitStage('uploading');
+        uploadedImageKeys = await uploadBoardImages(preparedImages, {
+          signal: abortController.signal,
+        });
+      }
+
+      // 화면에 보이는 순서를 유지하면서 기존 Key와 새로 발급된 Key를 합침
+      let localImageIndex = 0;
+      const images = imageItems.map((image) => {
+        if (image.kind === 'stored') {
+          return storedImageKeys(image);
+        }
+
+        // uploadBoardImages가 로컬 이미지 순서대로 반환한 Key 쌍을 해당 위치에 배치
+        const uploadedKeys = uploadedImageKeys[localImageIndex];
+        localImageIndex += 1;
+        return uploadedKeys;
+      });
+      // 기존 Key와 새 Key를 합친 뒤 만료되는 Presigned URL 없이 게시글 payload 생성
+      const payload = createPayload(values, images);
+
+      // 이미지 업로드가 끝난 뒤에만 Object Key가 포함된 게시글 API 호출
+      setSubmitStage('saving');
       const response = isEditMode
         ? await updateBoard(boardId, payload)
         : await createBoard(payload);
@@ -272,14 +367,26 @@ export default function BoardFormPage({ mode }) {
       // 생성과 수정 응답의 boardId를 사용해 최종 상세 주소로 이동
       navigate(`/boards/${response.boardId}`, { replace: true });
     } catch (error) {
+      // 페이지 이동으로 의도적으로 중단한 요청은 사용자 오류로 표시하지 않음
+      if (error.name === 'AbortError') {
+        return;
+      }
+
+      // 게시글 권한 오류는 별도 안내하고 나머지는 공통 오류 매퍼 사용
       setSubmitError(
-        error.status === 403
+        error.name === 'ApiError' && error.status === 403
           ? '게시글 작성자만 수정할 수 있습니다.'
-          : error.message ||
-              `게시글을 ${isEditMode ? '수정' : '등록'}하지 못했습니다.`,
+          : getUserFriendlyErrorMessage(error, {
+              fallback: `게시글을 ${isEditMode ? '수정' : '등록'}하지 못했습니다.`,
+            }),
       );
     } finally {
+      // 현재 요청의 Controller만 비우고 제출 상태를 다시 사용할 수 있도록 초기화
+      if (submitAbortControllerRef.current === abortController) {
+        submitAbortControllerRef.current = null;
+      }
       setIsSubmitting(false);
+      setSubmitStage('idle');
     }
   }
 
@@ -288,6 +395,18 @@ export default function BoardFormPage({ mode }) {
   }
 
   const pageTitle = isEditMode ? '사고 사례 수정' : '사고 사례 등록';
+  // 사용자가 현재 썸네일 생성·S3 업로드·게시글 저장 중 어느 단계인지 확인할 문구
+  const submitButtonText = isSubmitting
+    ? submitStage === 'processing'
+      ? '이미지 처리 중...'
+      : submitStage === 'uploading'
+        ? '이미지 업로드 중...'
+        : isEditMode
+          ? '수정 중...'
+          : '등록 중...'
+    : isEditMode
+      ? '수정하기'
+      : '사례 등록하기';
 
   return (
     <>
@@ -391,8 +510,8 @@ export default function BoardFormPage({ mode }) {
               <fieldset className="board-image-fields">
                 <legend>사고 현장 이미지</legend>
                 <p className="board-image-fields__guide">
-                  새로 첨부한 이미지는 아직 미리보기만
-                  제공되며 게시글에는 저장되지 않습니다.
+                  JPEG, PNG, WebP 이미지를 최대 5장까지 첨부할 수 있으며,
+                  파일당 최대 크기는 5MB입니다.
                 </p>
 
                 <div className="board-image-fields__list">
@@ -411,13 +530,14 @@ export default function BoardFormPage({ mode }) {
                         <span>
                           {image.kind === 'stored'
                             ? '등록된 이미지'
-                            : '미리보기 전용'}
+                            : '업로드할 이미지'}
                         </span>
                       </div>
                       <button
                         type="button"
                         className="board-image-item__remove"
                         onClick={() => removeImage(image.id)}
+                        disabled={isSubmitting}
                         aria-label={`이미지 ${index + 1} 삭제`}
                       >
                         ×
@@ -442,8 +562,9 @@ export default function BoardFormPage({ mode }) {
                   id="board-image-input"
                   type="file"
                   className="board-image-fields__input"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   multiple
+                  disabled={isSubmitting}
                   onChange={handleImageFiles}
                   aria-describedby="board-image-helper"
                 />
@@ -478,13 +599,7 @@ export default function BoardFormPage({ mode }) {
                 className="board-form__submit"
                 disabled={!canSubmit}
               >
-                {isSubmitting
-                  ? isEditMode
-                    ? '수정 중...'
-                    : '등록 중...'
-                  : isEditMode
-                    ? '수정하기'
-                    : '사례 등록하기'}
+                {submitButtonText}
               </button>
             </form>
           </section>

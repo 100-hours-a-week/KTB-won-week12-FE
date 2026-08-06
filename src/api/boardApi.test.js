@@ -65,7 +65,17 @@ describe('boardApi', () => {
   });
 
   it('게시글 생성과 수정 요청의 본문 및 응답 ID를 검증한다', async () => {
-    const body = { title: '제목', content: '내용', imageUrls: [] };
+    // 이미지 URL 대신 백엔드가 검증·저장할 원본/썸네일 Object Key 쌍 전송
+    const body = {
+      title: '제목',
+      content: '내용',
+      images: [
+        {
+          originalObjectKey: 'boards/7/group/original.png',
+          thumbnailObjectKey: 'boards/7/group/thumbnail.webp',
+        },
+      ],
+    };
     request
       .mockResolvedValueOnce({ data: { boardId: 2 } })
       .mockResolvedValueOnce({ data: { boardId: 2 } });

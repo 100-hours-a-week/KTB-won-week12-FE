@@ -110,21 +110,21 @@ function validateBoardMutationResponse(response, operationName) {
   return response.data;
 }
 
-export async function createBoard({ title, content, imageUrls }) {
+export async function createBoard({ title, content, images }) {
   const response = await request('/boards', {
     method: 'POST',
-    body: { title, content, imageUrls },
+    body: { title, content, images },
   });
 
   return validateBoardMutationResponse(response, '생성');
 }
 
-export async function updateBoard(boardId, { title, content, imageUrls }) {
+export async function updateBoard(boardId, { title, content, images }) {
   validateBoardId(boardId);
 
   const response = await request(`/boards/${boardId}`, {
     method: 'PATCH',
-    body: { title, content, imageUrls },
+    body: { title, content, images },
   });
 
   return validateBoardMutationResponse(response, '수정');
