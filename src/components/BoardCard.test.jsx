@@ -10,6 +10,8 @@ const BOARD = {
   commentCount: 4,
   viewCount: 10,
   createdAt: '2026-07-28T10:00:00',
+  // 게시글 목록 API가 첫 번째 이미지로 발급한 대표 썸네일 URL
+  thumbnailImageUrl: 'https://example.com/board-thumbnail.webp',
   author: {
     nickname: '작성자',
     profileImage: 'https://example.com/profile.jpg',
@@ -35,7 +37,11 @@ describe('BoardCard', () => {
     expect(within(stats).getByText('댓글 4')).toBeInTheDocument();
     expect(within(stats).getByText('조회 10')).toBeInTheDocument();
     expect(screen.getByText('작성자')).toBeInTheDocument();
-    expect(link.querySelector('img')).toHaveAttribute(
+    // 대표 썸네일과 작성자 프로필은 서로 다른 URL을 각 이미지 영역에서 사용
+    expect(
+      screen.getByRole('img', { name: '교차로 사고 사례 대표 이미지' }),
+    ).toHaveAttribute('src', BOARD.thumbnailImageUrl);
+    expect(link.querySelector('.board-card__author-image')).toHaveAttribute(
       'src',
       BOARD.author.profileImage,
     );
@@ -45,9 +51,17 @@ describe('BoardCard', () => {
     const { container } = renderCard({
       ...BOARD,
       createdAt: 'invalid-date',
+      thumbnailImageUrl: null,
       author: { nickname: '작성자', profileImage: null },
     });
 
+    // 첨부 이미지가 없으면 깨진 img 대신 기존 그라데이션 placeholder 표시
+    expect(
+      screen.getByLabelText('등록된 게시글 이미지 없음'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: /대표 이미지/ }),
+    ).not.toBeInTheDocument();
     expect(container.querySelector('.board-card__author-image')).toBeInTheDocument();
     expect(container.querySelector('time')).toHaveTextContent('');
   });

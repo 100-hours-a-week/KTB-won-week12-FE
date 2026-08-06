@@ -16,6 +16,8 @@ const BOARD = {
   boardId: 1,
   title: '사고 사례',
   content: '사고 내용',
+  // 목록에서는 이미지가 없는 게시글을 null 대표 썸네일로 표현
+  thumbnailImageUrl: null,
   images: [],
   author: { nickname: '작성자' },
 };
@@ -42,6 +44,32 @@ describe('boardApi', () => {
     );
   });
 
+  it('목록 대표 썸네일 필드가 누락되거나 잘못된 형식이면 오류를 반환한다', async () => {
+    // undefined는 새 백엔드 계약의 필드 누락, 숫자는 잘못된 URL 타입을 의미
+    request
+      .mockResolvedValueOnce({
+        data: {
+          content: [{ ...BOARD, thumbnailImageUrl: undefined }],
+          hasNext: false,
+          nextCursor: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          content: [{ ...BOARD, thumbnailImageUrl: 123 }],
+          hasNext: false,
+          nextCursor: null,
+        },
+      });
+
+    await expect(getBoards()).rejects.toThrow(
+      '게시글 목록 응답 형식이 올바르지 않습니다.',
+    );
+    await expect(getBoards()).rejects.toThrow(
+      '게시글 목록 응답 형식이 올바르지 않습니다.',
+    );
+  });
+
   it('게시글 ID와 상세 응답을 검증한다', async () => {
     await expect(getBoard(0)).rejects.toThrow('올바른 게시글 ID가 필요합니다.');
     expect(request).not.toHaveBeenCalled();
@@ -49,6 +77,28 @@ describe('boardApi', () => {
     request.mockResolvedValueOnce({ data: BOARD });
     await expect(getBoard(1)).resolves.toBe(BOARD);
     expect(request).toHaveBeenCalledWith('/boards/1', { signal: undefined });
+  });
+
+  it('상세 이미지의 Object Key 또는 Presigned GET URL이 누락되면 오류를 반환한다', async () => {
+    request.mockResolvedValueOnce({
+      data: {
+        ...BOARD,
+        images: [
+          {
+            imageId: 10,
+            originalObjectKey: 'boards/7/group/original.png',
+            thumbnailObjectKey: 'boards/7/group/thumbnail.webp',
+            originalImageUrl: '',
+            thumbnailImageUrl: 'https://bucket.example/thumbnail',
+          },
+        ],
+      },
+    });
+
+    // 빈 원본 URL을 정상 이미지로 렌더링하지 않고 API 계약 오류로 구분
+    await expect(getBoard(1)).rejects.toThrow(
+      '게시글 상세 응답 형식이 올바르지 않습니다.',
+    );
   });
 
   it('좋아요와 취소 요청에서 서버가 확정한 상태를 반환한다', async () => {

@@ -54,6 +54,27 @@ const BOARD = {
   editableByMe: true,
 };
 
+// 상세 API는 각 이미지의 저장 Key와 원본·썸네일 GET URL을 함께 반환
+const BOARD_WITH_IMAGES = {
+  ...BOARD,
+  images: [
+    {
+      imageId: 100,
+      originalObjectKey: 'boards/7/group-1/original.png',
+      thumbnailObjectKey: 'boards/7/group-1/thumbnail.webp',
+      originalImageUrl: 'https://example.com/original-1.png',
+      thumbnailImageUrl: 'https://example.com/thumbnail-1.webp',
+    },
+    {
+      imageId: 101,
+      originalObjectKey: 'boards/7/group-2/original.jpg',
+      thumbnailObjectKey: 'boards/7/group-2/thumbnail.webp',
+      originalImageUrl: 'https://example.com/original-2.jpg',
+      thumbnailImageUrl: 'https://example.com/thumbnail-2.webp',
+    },
+  ],
+};
+
 const COMMENT_ONE = {
   commentId: 10,
   content: '기존 댓글',
@@ -145,6 +166,36 @@ describe('BoardDetailPage', () => {
       size: 10,
       signal: expect.any(AbortSignal),
     });
+  });
+
+  it('상세 이미지마다 썸네일이 아닌 원본 Presigned GET URL을 표시한다', async () => {
+    // 이번 테스트에서만 이미지 두 장이 포함된 상세 응답 사용
+    getBoard.mockResolvedValueOnce(BOARD_WITH_IMAGES);
+    renderBoardDetail();
+
+    const firstImage = await screen.findByRole('img', {
+      name: '게시글 이미지 1',
+    });
+    const secondImage = screen.getByRole('img', {
+      name: '게시글 이미지 2',
+    });
+
+    // 상세 화면은 화질이 낮은 thumbnailImageUrl 대신 originalImageUrl 사용
+    expect(firstImage).toHaveAttribute(
+      'src',
+      BOARD_WITH_IMAGES.images[0].originalImageUrl,
+    );
+    expect(firstImage).not.toHaveAttribute(
+      'src',
+      BOARD_WITH_IMAGES.images[0].thumbnailImageUrl,
+    );
+    expect(secondImage).toHaveAttribute(
+      'src',
+      BOARD_WITH_IMAGES.images[1].originalImageUrl,
+    );
+    expect(
+      screen.queryByLabelText('등록된 게시글 이미지 없음'),
+    ).not.toBeInTheDocument();
   });
 
   it('올바르지 않은 게시글 주소에서는 API를 호출하지 않는다', async () => {

@@ -610,11 +610,14 @@ export default function BoardDetailPage() {
             <section className="board-detail__content">
               {board.images.length > 0 ? (
                 <div className="board-detail__images">
+                  {/* Presigned URL은 재조회마다 달라질 수 있어 DB 식별자를 Key로 사용하고 원본 URL로 표시 */}
                   {board.images.map((image, index) => (
                     <img
-                      key={image.imageId ?? image.imageUrl}
-                      src={image.imageUrl}
+                      key={image.imageId ?? image.originalObjectKey}
+                      src={image.originalImageUrl}
                       alt={`게시글 이미지 ${index + 1}`}
+                      loading="lazy"
+                      decoding="async"
                     />
                   ))}
                 </div>

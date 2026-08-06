@@ -3,6 +3,27 @@ import { request } from './httpClient';
 // 초기 조회와 추가 조회에서 동일하게 사용할 페이지 크기
 export const BOARD_PAGE_SIZE = 8;
 
+function isNonEmptyString(value) { // Object Key와 발급 URL의 필수 문자열 여부 확인
+  return typeof value === 'string' && value.length > 0;
+}
+
+function hasValidSummaryImage(board) { // 목록 대표 썸네일은 이미지가 없으면 null, 있으면 URL 문자열
+  return (
+    board?.thumbnailImageUrl === null ||
+    isNonEmptyString(board?.thumbnailImageUrl)
+  );
+}
+
+function hasValidDetailImage(image) { // 상세 이미지마다 DB 식별자, Key 쌍, GET URL 쌍이 모두 필요
+  return (
+    image?.imageId != null &&
+    isNonEmptyString(image.originalObjectKey) &&
+    isNonEmptyString(image.thumbnailObjectKey) &&
+    isNonEmptyString(image.originalImageUrl) &&
+    isNonEmptyString(image.thumbnailImageUrl)
+  );
+}
+
 // signal은 페이지 이동 시 진행 중인 fetch 요청 취소를 위해 사용
 export async function getBoards({
   cursor,
@@ -29,7 +50,9 @@ export async function getBoards({
     !page ||
     !Array.isArray(page.content) ||
     typeof page.hasNext !== 'boolean' ||
-    (page.hasNext && page.nextCursor == null)
+    (page.hasNext && page.nextCursor == null) ||
+    // 백엔드 계약이 바뀌어 썸네일 필드가 누락되면 깨진 카드를 표시하지 않고 오류 처리
+    page.content.some((board) => !hasValidSummaryImage(board))
   ) {
     throw new TypeError('게시글 목록 응답 형식이 올바르지 않습니다.');
   }
@@ -53,6 +76,8 @@ export async function getBoard(boardId, { signal } = {}) {
     typeof board.title !== 'string' ||
     typeof board.content !== 'string' ||
     !Array.isArray(board.images) ||
+    // 이미지가 있다면 Object Key와 원본·썸네일 Presigned GET URL을 모두 검증
+    board.images.some((image) => !hasValidDetailImage(image)) ||
     !board.author
   ) {
     throw new TypeError('게시글 상세 응답 형식이 올바르지 않습니다.');

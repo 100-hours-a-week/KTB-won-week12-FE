@@ -27,6 +27,7 @@ const BOARD_ONE = {
   commentCount: 2,
   viewCount: 3,
   createdAt: '2026-07-28T10:00:00',
+  thumbnailImageUrl: 'https://example.com/board-one-thumbnail.webp',
   author: { nickname: '작성자', profileImage: null },
 };
 

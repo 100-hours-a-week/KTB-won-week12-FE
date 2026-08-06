@@ -31,12 +31,16 @@
 
 .board-card__thumbnail {
   position: relative;
+  display: block;
+  width: 100%;
   height: 176px;
   overflow: hidden;
   background: linear-gradient(135deg, #dce5ef, #aab8c8);
+  object-fit: cover;
 }
 
-.board-card__thumbnail::before {
+.board-card div.board-card__thumbnail::before {
+  /* 실제 img에는 안내 문구를 겹치지 않고 placeholder div에만 표시 */
   position: absolute;
   inset: 0;
   display: grid;
