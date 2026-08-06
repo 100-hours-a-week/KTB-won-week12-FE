@@ -26,11 +26,18 @@ export default function BoardCard({ board }) {
             decoding="async"
           />
         ) : (
-          // 첨부 이미지가 없는 게시글은 기존 그라데이션 이미지 영역 유지
+          // 첨부 이미지가 없으면 카드 높이는 유지하면서 크맵 브랜드 로고 표시
           <div
-            className="board-card__thumbnail"
+            className="board-card__thumbnail board-card__thumbnail--empty"
             aria-label="등록된 게시글 이미지 없음"
-          />
+          >
+            <img
+              className="board-card__empty-logo"
+              src="/kmap_logo.svg"
+              alt=""
+              aria-hidden="true"
+            />
+          </div>
         )}
 
         <div className="board-card__body">

@@ -158,7 +158,10 @@ describe('BoardDetailPage', () => {
     expect(await screen.findByText('교차로 사고')).toBeInTheDocument();
     expect(screen.getByText('교차로에서 발생한 사고입니다.')).toBeInTheDocument();
     expect(screen.getByText('기존 댓글')).toBeInTheDocument();
-    expect(screen.getByLabelText('등록된 게시글 이미지 없음')).toBeInTheDocument();
+    // 이미지가 없는 상세 화면은 placeholder 없이 게시글 내용을 바로 표시
+    expect(
+      screen.queryByLabelText('등록된 게시글 이미지 없음'),
+    ).not.toBeInTheDocument();
     expect(getBoard).toHaveBeenCalledWith(1, {
       signal: expect.any(AbortSignal),
     });

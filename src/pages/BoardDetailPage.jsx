@@ -608,7 +608,7 @@ export default function BoardDetailPage() {
             </section>
 
             <section className="board-detail__content">
-              {board.images.length > 0 ? (
+              {board.images.length > 0 && (
                 <div className="board-detail__images">
                   {/* Presigned URL은 재조회마다 달라질 수 있어 DB 식별자를 Key로 사용하고 원본 URL로 표시 */}
                   {board.images.map((image, index) => (
@@ -621,16 +621,9 @@ export default function BoardDetailPage() {
                     />
                   ))}
                 </div>
-              ) : (
-                // 등록 이미지가 없어도 크맵 상세 화면의 이미지 영역 유지
-                <div
-                  className="board-detail__image-placeholder"
-                  aria-label="등록된 게시글 이미지 없음"
-                >
-                  등록된 사고 이미지가 없습니다.
-                </div>
               )}
 
+              {/* 첨부 이미지가 없으면 별도 빈 영역 없이 게시글 내용을 바로 표시 */}
               <p className="board-detail__text">{board.content}</p>
             </section>
 

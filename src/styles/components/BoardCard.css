@@ -39,17 +39,18 @@
   object-fit: cover;
 }
 
-.board-card div.board-card__thumbnail::before {
-  /* 실제 img에는 안내 문구를 겹치지 않고 placeholder div에만 표시 */
-  position: absolute;
-  inset: 0;
+.board-card__thumbnail--empty {
+  /* 이미지가 없는 카드도 목록 높이를 맞추되 사고 사진처럼 보이는 표현은 사용하지 않음 */
   display: grid;
   place-items: center;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-  content: '사고 현장 사진';
+  background: #f3f6fa;
+}
+
+.board-card__empty-logo {
+  display: block;
+  width: min(42%, 128px);
+  height: auto;
+  opacity: 0.72;
 }
 
 .board-card__body {

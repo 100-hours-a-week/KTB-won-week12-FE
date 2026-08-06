@@ -55,10 +55,13 @@ describe('BoardCard', () => {
       author: { nickname: '작성자', profileImage: null },
     });
 
-    // 첨부 이미지가 없으면 깨진 img 대신 기존 그라데이션 placeholder 표시
-    expect(
-      screen.getByLabelText('등록된 게시글 이미지 없음'),
-    ).toBeInTheDocument();
+    // 첨부 이미지가 없으면 사고 사진 대신 크맵 로고가 들어간 카드 영역 표시
+    const emptyThumbnail = screen.getByLabelText('등록된 게시글 이미지 없음');
+    expect(emptyThumbnail).toBeInTheDocument();
+    expect(emptyThumbnail.querySelector('.board-card__empty-logo')).toHaveAttribute(
+      'src',
+      '/kmap_logo.svg',
+    );
     expect(
       screen.queryByRole('img', { name: /대표 이미지/ }),
     ).not.toBeInTheDocument();
