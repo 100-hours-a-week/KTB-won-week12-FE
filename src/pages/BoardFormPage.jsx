@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   createBoard,
@@ -55,17 +55,34 @@ function storedImageKeys(image) { // 기존 이미지에서 DB에 다시 저장�
   };
 }
 
-function createFormSnapshot(values, imageItems) { // 수정 화면의 최초 상태와 현재 상태를 비교할 snapshot 생성
+function createInitialSnapshot(values, imageItems) { // 수정 화면을 처음 불러온 시점의 제목·내용·이미지 Key 보관
   return {
     title: values.title.trim(),
     content: values.content.trim(),
-    // 기존 이미지는 Key로, 아직 업로드하지 않은 로컬 이미지는 화면 내부 ID로 변경 감지
-    images: imageItems.map((image) =>
-      image.kind === 'stored'
-        ? storedImageKeys(image)
-        : { localImageId: image.id },
-    ),
+    // 최초 조회 시에는 저장된 이미지만 있으므로 만료되는 URL 대신 Key 쌍 저장
+    images: imageItems.map(storedImageKeys),
   };
+}
+
+function hasSameStoredImageKeys(imageItems, initialImages) { // 현재 저장 이미지 순서와 최초 Key 순서 비교
+  // 새 로컬 이미지는 아직 Object Key가 없으므로 한 장이라도 있으면 이미지가 변경된 상태
+  if (imageItems.some((image) => image.kind === 'local')) {
+    return false;
+  }
+
+  if (imageItems.length !== initialImages.length) {
+    // 기존 이미지를 삭제한 경우 배열 길이가 달라지므로 즉시 변경으로 판단
+    return false;
+  }
+
+  return imageItems.every((image, index) => {
+    const initialImage = initialImages[index];
+
+    return (
+      image.originalObjectKey === initialImage.originalObjectKey &&
+      image.thumbnailObjectKey === initialImage.thumbnailObjectKey
+    );
+  });
 }
 
 export default function BoardFormPage({ mode }) {
@@ -108,21 +125,23 @@ export default function BoardFormPage({ mode }) {
 
   const titleError = validateTitle(values.title);
   const contentError = validateContent(values.content);
-  // 제목·내용·이미지 구성 중 하나가 바뀌었는지 확인할 비교용 객체를 입력 변경 시에만 재생성
-  const formSnapshot = useMemo(
-    () => createFormSnapshot(values, imageItems),
-    [imageItems, values],
-  );
   const activePreview = imageItems.find(
     (image) => image.id === activePreviewId,
   );
 
   const isFormValid = !titleError && !contentError && !imageError;
-  // 신규 작성은 항상 제출 가능하고 수정은 최초 snapshot과 달라진 경우에만 제출 가능
+  // 텍스트와 이미지 변경을 분리해 이미지 추가·삭제만 한 경우도 명확하게 감지
+  const hasTextChanges =
+    initialPayload != null &&
+    (values.title.trim() !== initialPayload.title ||
+      values.content.trim() !== initialPayload.content);
+  const hasImageChanges =
+    initialPayload != null &&
+    !hasSameStoredImageKeys(imageItems, initialPayload.images);
+  // 신규 작성은 유효한 입력이면 제출 가능하고 수정은 텍스트나 이미지 중 하나가 달라야 제출 가능
   const isDirty =
     !isEditMode ||
-    (initialPayload != null &&
-      JSON.stringify(formSnapshot) !== JSON.stringify(initialPayload));
+    (initialPayload != null && (hasTextChanges || hasImageChanges));
   const canSubmit =
     loadState === 'success' && isFormValid && isDirty && !isSubmitting;
 
@@ -202,7 +221,7 @@ export default function BoardFormPage({ mode }) {
         setValues(nextValues);
         setImageItems(nextImageItems);
         // 이후 제목·내용·이미지 변경 여부를 비교하기 위해 최초 수정 상태 보관
-        setInitialPayload(createFormSnapshot(nextValues, nextImageItems));
+        setInitialPayload(createInitialSnapshot(nextValues, nextImageItems));
         setLoadState('success');
       } catch (error) {
         if (error.name === 'AbortError') {

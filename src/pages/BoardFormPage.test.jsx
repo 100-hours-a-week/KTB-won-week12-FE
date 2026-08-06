@@ -345,6 +345,8 @@ describe('BoardFormPage', () => {
     });
 
     await user.upload(screen.getByLabelText('+ 이미지 첨부'), localFile);
+    // 제목·내용을 건드리지 않아도 새 로컬 이미지 자체가 변경 사항이므로 버튼 활성화
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: '수정하기' }));
 
     await waitFor(() => expect(updateBoard).toHaveBeenCalledTimes(1));
@@ -374,6 +376,8 @@ describe('BoardFormPage', () => {
     await screen.findByText('기존 이미지 1');
 
     await user.click(screen.getByRole('button', { name: '이미지 1 삭제' }));
+    // 기존 이미지 삭제만 수행해도 최초 Object Key 구성과 달라져 버튼 활성화
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: '수정하기' }));
 
     await waitFor(() => expect(updateBoard).toHaveBeenCalledTimes(1));
