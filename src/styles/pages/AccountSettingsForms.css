@@ -36,6 +36,11 @@
   object-fit: cover;
 }
 
+.account-profile-preview__default-avatar {
+  width: 100%;
+  height: 100%;
+}
+
 .account-profile-preview__overlay {
   position: absolute;
   right: 0;

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AUTH_STATUS, useAuth } from '../auth/AuthContext';
 import { getUserFriendlyErrorMessage } from '../utils/errorMessage';
 import BrandLogo from './BrandLogo';
+import DefaultProfileAvatar from './DefaultProfileAvatar';
 import '../styles/components/AppHeader.css';
 
 export default function AppHeader({ showProfile = true, onBack }) {
@@ -93,7 +94,7 @@ export default function AppHeader({ showProfile = true, onBack }) {
             {currentUser?.profileImage ? (
               <img src={currentUser.profileImage} alt="" />
             ) : (
-              <span className="app-header__profile-image" />
+              <DefaultProfileAvatar className="app-header__profile-image" />
             )}
           </button>
 

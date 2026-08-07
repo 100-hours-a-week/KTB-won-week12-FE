@@ -9,6 +9,7 @@ import { uploadProfileImage } from '../api/uploadApi';
 import { useAuth } from '../auth/AuthContext';
 import AccountSettingsLayout from '../components/AccountSettingsLayout';
 import ConfirmModal from '../components/ConfirmModal';
+import DefaultProfileAvatar from '../components/DefaultProfileAvatar';
 import useAvailabilityCheck from '../hooks/useAvailabilityCheck';
 import { getUserFriendlyErrorMessage } from '../utils/errorMessage';
 import { validateProfileImageFile } from '../utils/imageProcessing';
@@ -342,13 +343,13 @@ export default function ProfileSettingsPage() {
                 {previewUrl ? (
                   <img src={previewUrl} alt="프로필 미리보기" />
                 ) : (
-                  <span aria-hidden="true">+</span>
+                  <DefaultProfileAvatar
+                    className="account-profile-preview__default-avatar"
+                  />
                 )}
-                {previewUrl && (
-                  <span className="account-profile-preview__overlay">
-                    변경
-                  </span>
-                )}
+                <span className="account-profile-preview__overlay">
+                  {previewUrl ? '변경' : '추가'}
+                </span>
               </label>
               <input
                 ref={profileImageInputRef}

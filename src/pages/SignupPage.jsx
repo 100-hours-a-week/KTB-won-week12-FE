@@ -8,6 +8,7 @@ import {
 import { AUTH_STATUS, useAuth } from '../auth/AuthContext';
 import AppHeader from '../components/AppHeader';
 import BrandLogo from '../components/BrandLogo';
+import DefaultProfileAvatar from '../components/DefaultProfileAvatar';
 import Portal from '../components/Portal';
 import useAvailabilityCheck from '../hooks/useAvailabilityCheck';
 import { getUserFriendlyErrorMessage } from '../utils/errorMessage';
@@ -291,9 +292,9 @@ export default function SignupPage() {
               <div className="signup-profile">
                 <span className="signup-form__label">프로필 이미지</span>
                 <div className="signup-profile__preview is-default">
-                  <img
-                    src="/kmap_icon.svg"
-                    alt="기본 프로필 이미지"
+                  <DefaultProfileAvatar
+                    className="signup-profile__default-avatar"
+                    ariaLabel="기본 프로필 이미지"
                   />
                 </div>
                 <p

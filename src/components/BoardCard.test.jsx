@@ -65,7 +65,11 @@ describe('BoardCard', () => {
     expect(
       screen.queryByRole('img', { name: /대표 이미지/ }),
     ).not.toBeInTheDocument();
-    expect(container.querySelector('.board-card__author-image')).toBeInTheDocument();
+    const defaultAvatar = container.querySelector(
+      '.board-card__author-image.default-profile-avatar',
+    );
+    expect(defaultAvatar).toBeInTheDocument();
+    expect(defaultAvatar.querySelector('svg')).toBeInTheDocument();
     expect(container.querySelector('time')).toHaveTextContent('');
   });
 });

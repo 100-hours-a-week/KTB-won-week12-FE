@@ -17,6 +17,7 @@ import { AUTH_STATUS, useAuth } from '../auth/AuthContext';
 import AppHeader from '../components/AppHeader';
 import CommentItem from '../components/CommentItem';
 import ConfirmModal from '../components/ConfirmModal';
+import DefaultProfileAvatar from '../components/DefaultProfileAvatar';
 import LoginRequiredModal from '../components/LoginRequiredModal';
 import '../styles/pages/BoardDetailPage.css';
 
@@ -578,7 +579,7 @@ export default function BoardDetailPage() {
                   {board.author.profileImage ? (
                     <img src={board.author.profileImage} alt="" />
                   ) : (
-                    <span aria-hidden="true" />
+                    <DefaultProfileAvatar />
                   )}
                   <strong>{board.author.nickname}</strong>
                 </div>

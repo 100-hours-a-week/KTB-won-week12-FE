@@ -71,6 +71,30 @@ describe('AppHeader', () => {
     expect(await screen.findByText('프로필 설정 도착')).toBeInTheDocument();
   });
 
+  it('프로필 사진이 없는 인증 사용자에게 기본 사람 아바타를 표시한다', () => {
+    const { container } = render(
+      <AuthContext.Provider
+        value={{
+          status: AUTH_STATUS.AUTHENTICATED,
+          currentUser: { ...CURRENT_USER, profileImage: null },
+          isCurrentUserLoading: false,
+          currentUserError: '',
+          logoutSession: vi.fn(),
+        }}
+      >
+        <MemoryRouter>
+          <AppHeader />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+
+    const defaultAvatar = container.querySelector(
+      '.app-header__profile-image.default-profile-avatar',
+    );
+    expect(defaultAvatar).toBeInTheDocument();
+    expect(defaultAvatar.querySelector('svg')).toBeInTheDocument();
+  });
+
   it('로그아웃 성공 후 게시글 목록 주소로 이동한다', async () => {
     const user = userEvent.setup();
     const authValue = renderHeader({

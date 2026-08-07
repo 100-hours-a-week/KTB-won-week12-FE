@@ -167,10 +167,11 @@ describe('SignupPage', () => {
   it('기본 프로필 이미지와 로그인 후 변경 안내를 표시한다', () => {
     renderSignupPage();
 
-    expect(screen.getByAltText('기본 프로필 이미지')).toHaveAttribute(
-      'src',
-      '/kmap_icon.svg',
-    );
+    const defaultAvatar = screen.getByRole('img', {
+      name: '기본 프로필 이미지',
+    });
+    expect(defaultAvatar).toHaveClass('default-profile-avatar');
+    expect(defaultAvatar.querySelector('svg')).toBeInTheDocument();
     expect(
       screen.getByText(
         '프로필 사진 변경은 로그인 후 회원 정보 수정에서 가능합니다.',

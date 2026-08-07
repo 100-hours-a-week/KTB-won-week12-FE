@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DefaultProfileAvatar from './DefaultProfileAvatar';
 import '../styles/components/CommentItem.css';
 
 function formatDateTime(value) {
@@ -63,7 +64,7 @@ export default function CommentItem({ comment, onUpdate, onDelete }) {
           alt=""
         />
       ) : (
-        <span className="comment-item__image" aria-hidden="true" />
+        <DefaultProfileAvatar className="comment-item__image" />
       )}
 
       <div className="comment-item__body">

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import DefaultProfileAvatar from './DefaultProfileAvatar';
 import '../styles/components/BoardCard.css';
 
 export default function BoardCard({ board }) {
@@ -59,7 +60,7 @@ export default function BoardCard({ board }) {
               alt=""
             />
           ) : (
-            <span className="board-card__author-image" aria-hidden="true" />
+            <DefaultProfileAvatar className="board-card__author-image" />
           )}
           <span className="board-card__author-name">
             {board.author.nickname}

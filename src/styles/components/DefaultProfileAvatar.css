@@ -1,0 +1,16 @@
+.default-profile-avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffedd5;
+  color: var(--color-primary, #f97316);
+}
+
+.default-profile-avatar svg {
+  width: 72%;
+  height: 72%;
+  fill: currentColor;
+}

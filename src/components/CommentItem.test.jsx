@@ -25,6 +25,20 @@ function renderComment(overrides = {}, handlers = {}) {
 }
 
 describe('CommentItem', () => {
+  it('프로필 사진이 없으면 크맵 색상의 기본 사람 아바타를 표시한다', () => {
+    const { container } = render(<CommentItem
+      comment={COMMENT}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />);
+
+    const defaultAvatar = container.querySelector(
+      '.comment-item__image.default-profile-avatar',
+    );
+    expect(defaultAvatar).toBeInTheDocument();
+    expect(defaultAvatar.querySelector('svg')).toBeInTheDocument();
+  });
+
   it('수정 권한이 없는 댓글에는 관리 버튼을 표시하지 않는다', () => {
     renderComment({ editableByMe: false });
 
