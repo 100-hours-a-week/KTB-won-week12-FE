@@ -5,11 +5,13 @@ import {
   deleteCurrentUser,
   updateCurrentUser,
 } from '../api/userApi';
+import { uploadProfileImage } from '../api/uploadApi';
 import { useAuth } from '../auth/AuthContext';
 import AccountSettingsLayout from '../components/AccountSettingsLayout';
 import ConfirmModal from '../components/ConfirmModal';
 import useAvailabilityCheck from '../hooks/useAvailabilityCheck';
 import { getUserFriendlyErrorMessage } from '../utils/errorMessage';
+import { validateProfileImageFile } from '../utils/imageProcessing';
 import { validateNickname } from '../utils/validation';
 import '../styles/pages/AccountSettingsForms.css';
 
@@ -35,12 +37,14 @@ export default function ProfileSettingsPage() {
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // S3 업로드 도입 전까지 선택 파일과 브라우저 임시 미리보기만 관리
+  // 새 파일은 저장 전까지 브라우저 메모리에만 두고 blob URL로 미리보기한다.
   const [selectedProfileImage, setSelectedProfileImage] = useState(null);
   const [profilePreviewUrl, setProfilePreviewUrl] = useState('');
+  const [profileImageAction, setProfileImageAction] = useState('keep');
   const [profileImageError, setProfileImageError] = useState('');
   const profilePreviewUrlRef = useRef('');
   const profileImageInputRef = useRef(null);
+  const profileUploadAbortControllerRef = useRef(null);
 
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
@@ -54,6 +58,8 @@ export default function ProfileSettingsPage() {
 
     const nextValues = {
       nickname: currentUser.nickname,
+      profileImageObjectKey:
+        currentUser.profileImageObjectKey ?? null,
       profileImage: currentUser.profileImage ?? null,
     };
 
@@ -67,6 +73,7 @@ export default function ProfileSettingsPage() {
       if (profilePreviewUrlRef.current) {
         URL.revokeObjectURL(profilePreviewUrlRef.current);
       }
+      profileUploadAbortControllerRef.current?.abort();
     },
     [],
   );
@@ -78,8 +85,10 @@ export default function ProfileSettingsPage() {
     isNicknameUnchanged ||
     (nicknameAvailability.status === 'available' &&
       nicknameAvailability.checkedValue === nickname);
-  const isDirty =
+  const isNicknameDirty =
     initialValues != null && nickname !== initialValues.nickname;
+  const isProfileImageDirty = profileImageAction !== 'keep';
+  const isDirty = isNicknameDirty || isProfileImageDirty;
   const canSubmit =
     !nicknameError &&
     isNicknameChecked &&
@@ -87,7 +96,9 @@ export default function ProfileSettingsPage() {
     !isSubmitting &&
     currentUser != null;
   const previewUrl =
-    profilePreviewUrl || currentUser?.profileImage || '';
+    profileImageAction === 'remove'
+      ? ''
+      : profilePreviewUrl || currentUser?.profileImage || '';
 
   function handleNicknameChange(event) {
     setNickname(event.target.value);
@@ -123,9 +134,13 @@ export default function ProfileSettingsPage() {
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
+    try {
+      // 프로필도 백엔드와 동일하게 JPEG, PNG, WebP 및 5MB 제한을 적용한다.
+      validateProfileImageFile(file);
+    } catch (error) {
       clearProfilePreview();
-      setProfileImageError('이미지 파일만 선택할 수 있습니다.');
+      setProfileImageAction('keep');
+      setProfileImageError(error.message);
       return;
     }
 
@@ -135,11 +150,28 @@ export default function ProfileSettingsPage() {
     profilePreviewUrlRef.current = nextPreviewUrl;
     setSelectedProfileImage(file);
     setProfilePreviewUrl(nextPreviewUrl);
+    setProfileImageAction('replace');
+  }
+
+  function cancelProfileImageSelection() {
+    clearProfilePreview();
+    setProfileImageAction('keep');
+    setProfileImageError('');
+    setSubmitError('');
+    setSuccessMessage('');
   }
 
   function removeProfileImage() {
     clearProfilePreview();
+    // 저장 시 null을 보내 기존 S3 Object Key와 사용자 연결을 제거한다.
+    setProfileImageAction('remove');
     setProfileImageError('');
+    setSubmitError('');
+    setSuccessMessage('');
+  }
+
+  function restoreProfileImage() {
+    setProfileImageAction('keep');
     setSubmitError('');
     setSuccessMessage('');
   }
@@ -176,16 +208,32 @@ export default function ProfileSettingsPage() {
     }
 
     setIsSubmitting(true);
+    const uploadAbortController = new AbortController();
+    profileUploadAbortControllerRef.current = uploadAbortController;
 
     try {
+      let profileImageObjectKey =
+        initialValues.profileImageObjectKey;
+
+      if (profileImageAction === 'replace') {
+        // S3 업로드가 성공한 뒤에만 해당 Object Key를 사용자 정보에 저장한다.
+        profileImageObjectKey = await uploadProfileImage(
+          selectedProfileImage,
+          { signal: uploadAbortController.signal },
+        );
+      } else if (profileImageAction === 'remove') {
+        profileImageObjectKey = null;
+      }
+
       const updatedUser = await updateCurrentUser({
         nickname: nickname.trim(),
-        // 업로드 API 도입 전에는 선택한 로컬 파일 대신 기존 서버 URL 유지
-        profileImage: initialValues.profileImage,
+        profileImageObjectKey,
       });
       const nextCurrentUser = {
         email: currentUser.email,
         nickname: updatedUser.nickname,
+        profileImageObjectKey:
+          updatedUser.profileImageObjectKey ?? null,
         profileImage: updatedUser.profileImage,
       };
 
@@ -193,10 +241,13 @@ export default function ProfileSettingsPage() {
       replaceCurrentUser(nextCurrentUser);
       setInitialValues({
         nickname: nextCurrentUser.nickname,
+        profileImageObjectKey:
+          nextCurrentUser.profileImageObjectKey,
         profileImage: nextCurrentUser.profileImage ?? null,
       });
       nicknameAvailability.reset();
       clearProfilePreview();
+      setProfileImageAction('keep');
       setSuccessMessage('회원정보가 수정되었습니다.');
     } catch (error) {
       setSubmitError(
@@ -209,6 +260,11 @@ export default function ProfileSettingsPage() {
         }),
       );
     } finally {
+      if (
+        profileUploadAbortControllerRef.current === uploadAbortController
+      ) {
+        profileUploadAbortControllerRef.current = null;
+      }
       setIsSubmitting(false);
     }
   }
@@ -299,7 +355,7 @@ export default function ProfileSettingsPage() {
                 id="settings-profile-image"
                 type="file"
                 className="account-profile__input"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleProfileImageChange}
                 aria-invalid={Boolean(profileImageError)}
                 aria-describedby="settings-profile-image-helper"
@@ -308,8 +364,30 @@ export default function ProfileSettingsPage() {
               {selectedProfileImage && (
                 <div className="account-profile__selection">
                   <span>{selectedProfileImage.name}</span>
-                  <button type="button" onClick={removeProfileImage}>
-                    제거
+                  <button
+                    type="button"
+                    onClick={cancelProfileImageSelection}
+                  >
+                    선택 취소
+                  </button>
+                </div>
+              )}
+
+              {!selectedProfileImage &&
+                profileImageAction === 'keep' &&
+                currentUser.profileImageObjectKey && (
+                  <div className="account-profile__selection">
+                    <button type="button" onClick={removeProfileImage}>
+                      프로필 이미지 삭제
+                    </button>
+                  </div>
+                )}
+
+              {profileImageAction === 'remove' && (
+                <div className="account-profile__selection">
+                  <span>저장하면 기본 프로필로 변경됩니다.</span>
+                  <button type="button" onClick={restoreProfileImage}>
+                    삭제 취소
                   </button>
                 </div>
               )}
@@ -321,7 +399,7 @@ export default function ProfileSettingsPage() {
                 }`}
               >
                 {profileImageError ||
-                  '현재는 미리보기만 제공되며 저장되지 않습니다.'}
+                  'JPEG, PNG, WebP 이미지를 5MB 이하로 선택해주세요.'}
               </p>
             </div>
 
@@ -398,7 +476,7 @@ export default function ProfileSettingsPage() {
               className="account-form__submit"
               disabled={!canSubmit}
             >
-              {isSubmitting ? '수정 중...' : '수정하기'}
+              {isSubmitting ? '이미지 업로드 및 수정 중...' : '수정하기'}
             </button>
           </form>
 

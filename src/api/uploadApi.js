@@ -4,15 +4,26 @@ import {
   BOARD_IMAGE_MAX_THUMBNAIL_SIZE,
   BOARD_IMAGE_THUMBNAIL_TYPE,
   validateBoardImageFile,
+  validateProfileImageFile,
 } from '../utils/imageProcessing';
 
 export const BOARD_IMAGE_UPLOAD_TIMEOUT_MS = 45_000;
+export const PROFILE_IMAGE_UPLOAD_TIMEOUT_MS = 45_000;
 
 // 백엔드 API 오류와 S3 직접 업로드 오류를 화면에서 구분할 수 있도록 별도 오류 타입 사용
 export class BoardImageUploadError extends Error {
   constructor(code, message, { status = null } = {}) {
     super(message);
     this.name = 'BoardImageUploadError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
+export class ProfileImageUploadError extends Error {
+  constructor(code, message, { status = null } = {}) {
+    super(message);
+    this.name = 'ProfileImageUploadError';
     this.code = code;
     this.status = status;
   }
@@ -153,6 +164,36 @@ async function uploadObject(uploadUrl, file, contentType, signal) {
   }
 }
 
+// 프로필은 썸네일 없이 원본 한 장만 사용하므로 게시글용 요청과 분리한다.
+export async function requestProfileImageUploadUrl(file, { signal } = {}) {
+  validateProfileImageFile(file);
+
+  const response = await request('/uploads/profile-image/presigned-url', {
+    method: 'POST',
+    body: {
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size,
+    },
+    signal,
+  });
+  const uploadTarget = response?.data;
+
+  if (
+    typeof uploadTarget?.objectKey !== 'string' ||
+    uploadTarget.objectKey.length === 0 ||
+    typeof uploadTarget?.uploadUrl !== 'string' ||
+    uploadTarget.uploadUrl.length === 0 ||
+    uploadTarget?.contentType !== file.type
+  ) {
+    throw new TypeError(
+      '프로필 이미지 업로드 URL 응답 형식이 올바르지 않습니다.',
+    );
+  }
+
+  return uploadTarget;
+}
+
 function createAbortContext(externalSignal, timeoutMs) {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new TypeError('이미지 업로드 제한 시간은 양수이어야 합니다.');
@@ -186,6 +227,52 @@ function createAbortContext(externalSignal, timeoutMs) {
       externalSignal?.removeEventListener('abort', abortFromExternalSignal);
     },
   };
+}
+
+// Presigned URL 발급부터 S3 PUT까지 완료한 뒤 DB 저장에 사용할 Object Key만 반환한다.
+export async function uploadProfileImage(
+  file,
+  { signal, timeoutMs = PROFILE_IMAGE_UPLOAD_TIMEOUT_MS } = {},
+) {
+  validateProfileImageFile(file);
+  const abortContext = createAbortContext(signal, timeoutMs);
+
+  try {
+    const uploadTarget = await requestProfileImageUploadUrl(file, {
+      signal: abortContext.signal,
+    });
+
+    try {
+      await uploadObject(
+        uploadTarget.uploadUrl,
+        file,
+        uploadTarget.contentType,
+        abortContext.signal,
+      );
+    } catch (error) {
+      if (error instanceof BoardImageUploadError) {
+        throw new ProfileImageUploadError(
+          error.code.replace('BOARD_IMAGE', 'PROFILE_IMAGE'),
+          error.message,
+          { status: error.status },
+        );
+      }
+      throw error;
+    }
+
+    return uploadTarget.objectKey;
+  } catch (error) {
+    if (abortContext.didTimeout()) {
+      throw new ProfileImageUploadError(
+        'PROFILE_IMAGE_UPLOAD_TIMEOUT',
+        '프로필 이미지 업로드 시간이 초과되었습니다. 다시 시도해주세요.',
+      );
+    }
+
+    throw error;
+  } finally {
+    abortContext.cleanup();
+  }
 }
 
 //전체 흐름을 조합.

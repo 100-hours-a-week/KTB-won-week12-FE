@@ -16,6 +16,7 @@ describe('userApi', () => {
     const user = {
       email: 'user@example.com',
       nickname: '테스터',
+      profileImageObjectKey: null,
       profileImage: null,
     };
     request.mockResolvedValueOnce({ data: user });
@@ -29,16 +30,26 @@ describe('userApi', () => {
     );
   });
 
-  it('닉네임과 프로필 URL로 사용자 정보를 수정한다', async () => {
-    const updatedUser = { nickname: '새닉네임', profileImage: null };
+  it('닉네임과 프로필 Object Key로 사용자 정보를 수정한다', async () => {
+    const updatedUser = {
+      nickname: '새닉네임',
+      profileImageObjectKey: 'profiles/1/id/original.png',
+      profileImage: 'https://bucket.example/profile',
+    };
     request.mockResolvedValueOnce({ data: updatedUser });
 
     await expect(
-      updateCurrentUser({ nickname: '새닉네임', profileImage: null }),
+      updateCurrentUser({
+        nickname: '새닉네임',
+        profileImageObjectKey: 'profiles/1/id/original.png',
+      }),
     ).resolves.toBe(updatedUser);
     expect(request).toHaveBeenCalledWith('/users/me', {
       method: 'PATCH',
-      body: { nickname: '새닉네임', profileImage: null },
+      body: {
+        nickname: '새닉네임',
+        profileImageObjectKey: 'profiles/1/id/original.png',
+      },
     });
   });
 

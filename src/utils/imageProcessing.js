@@ -53,6 +53,11 @@ export function validateBoardImageFile(file) {
   return file;
 }
 
+// 프로필 원본도 게시글 원본과 같은 파일명, MIME 타입, 5MB 제한을 사용한다.
+export function validateProfileImageFile(file) {
+  return validateBoardImageFile(file);
+}
+
 // 업로드한 파일 갯수와 각 파일을 검증
 export function validateBoardImageFiles(files) {
   if (!Array.isArray(files)) {

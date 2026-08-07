@@ -4,6 +4,7 @@ import {
   getCsrfToken,
   login,
   refreshAccessToken,
+  signup,
 } from './authApi';
 import { request } from './httpClient';
 
@@ -67,6 +68,36 @@ describe('authApi', () => {
     await expect(
       checkEmailAvailability('user@example.com'),
     ).rejects.toThrow('중복 확인 응답 형식이 올바르지 않습니다.');
+  });
+
+  it('회원가입에는 프로필 이미지 없이 필수 계정 정보만 전송한다', async () => {
+    const joinedUser = { id: 1, email: 'user@example.com' };
+    const signal = new AbortController().signal;
+    request.mockResolvedValueOnce({ data: joinedUser });
+
+    await expect(
+      signup(
+        {
+          email: 'user@example.com',
+          nickname: '테스터',
+          password: 'Password1!',
+        },
+        { signal },
+      ),
+    ).resolves.toBe(joinedUser);
+
+    // 프로필 이미지는 로그인 후 회원정보 수정에서만 등록한다.
+    expect(request).toHaveBeenCalledWith('/auth/signup', {
+      method: 'POST',
+      body: {
+        email: 'user@example.com',
+        nickname: '테스터',
+        password: 'Password1!',
+      },
+      auth: false,
+      retryOnUnauthorized: false,
+      signal,
+    });
   });
 
   it('CSRF Token과 헤더 이름을 반환한다', async () => {

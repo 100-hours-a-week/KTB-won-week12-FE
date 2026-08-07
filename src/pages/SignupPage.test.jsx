@@ -69,14 +69,6 @@ describe('SignupPage', () => {
     checkNicknameAvailability.mockResolvedValue(true);
     signup.mockResolvedValue({ id: 1, email: 'user@example.com' });
 
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:profile-preview'),
-    });
-    Object.defineProperty(URL, 'revokeObjectURL', {
-      configurable: true,
-      value: vi.fn(),
-    });
   });
 
   afterEach(() => {
@@ -132,7 +124,6 @@ describe('SignupPage', () => {
         email: 'user@example.com',
         nickname: '테스터',
         password: 'Password1!',
-        profileImage: null,
       },
       { signal: expect.any(AbortSignal) },
     );
@@ -173,27 +164,20 @@ describe('SignupPage', () => {
     expect(screen.getByRole('button', { name: '회원가입' })).toBeDisabled();
   });
 
-  it('선택한 프로필 이미지를 미리 표시하고 제거할 수 있다', async () => {
-    const user = userEvent.setup();
+  it('기본 프로필 이미지와 로그인 후 변경 안내를 표시한다', () => {
     renderSignupPage();
-    const imageFile = new File(['image'], 'profile.png', {
-      type: 'image/png',
-    });
 
-    await user.upload(screen.getByLabelText('프로필 이미지 추가'), imageFile);
-
-    expect(URL.createObjectURL).toHaveBeenCalledWith(imageFile);
-    expect(screen.getByAltText('프로필 미리보기')).toHaveAttribute(
+    expect(screen.getByAltText('기본 프로필 이미지')).toHaveAttribute(
       'src',
-      'blob:profile-preview',
+      '/kmap_icon.svg',
     );
-    expect(screen.getByText('profile.png')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '제거' }));
-
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:profile-preview');
-    expect(screen.queryByAltText('프로필 미리보기')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('프로필 이미지 추가')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '프로필 사진 변경은 로그인 후 회원 정보 수정에서 가능합니다.',
+      ),
+    ).toBeInTheDocument();
+    // 회원가입에서는 저장되지 않는 파일 입력을 노출하지 않는다.
+    expect(document.querySelector('input[type="file"]')).toBeNull();
   });
 
   it('백엔드의 이메일 중복 오류를 사용자용 메시지로 표시한다', async () => {

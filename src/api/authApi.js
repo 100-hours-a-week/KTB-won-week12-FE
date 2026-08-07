@@ -59,7 +59,7 @@ export function checkNicknameAvailability(nickname, options) {
 }
 
 export async function signup(
-  { email, nickname, password, profileImage },
+  { email, nickname, password },
   { signal } = {},
 ) {
   // 회원가입은 Access Token이 없는 공개 요청이며 자동 Refresh 대상에서 제외
@@ -69,7 +69,6 @@ export async function signup(
       email,
       nickname,
       password,
-      profileImage: profileImage || null,
     },
     auth: false,
     retryOnUnauthorized: false,

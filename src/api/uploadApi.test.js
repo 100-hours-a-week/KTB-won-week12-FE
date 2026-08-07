@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { request } from './httpClient';
 import {
   BoardImageUploadError,
+  ProfileImageUploadError,
   requestBoardImageUploadUrls,
+  requestProfileImageUploadUrl,
   uploadBoardImages,
+  uploadProfileImage,
 } from './uploadApi';
 import { BOARD_IMAGE_MAX_THUMBNAIL_SIZE } from '../utils/imageProcessing';
 
@@ -33,6 +36,15 @@ function uploadTarget(index = 1, originalType = 'image/png') {
     thumbnailUploadUrl: `https://bucket.example/thumbnail-${index}`,
     thumbnailContentType: 'image/webp',
     expiresAt: '2026-08-06T00:00:00Z',
+  };
+}
+
+function profileUploadTarget(contentType = 'image/png') {
+  return {
+    objectKey: 'profiles/7/profile-id/original.png',
+    uploadUrl: 'https://bucket.example/profile',
+    contentType,
+    expiresAt: '2026-08-07T00:00:00Z',
   };
 }
 
@@ -243,5 +255,70 @@ describe('uploadApi', () => {
     // 불필요한 Presigned URL 요청이나 S3 네트워크 요청이 없어야 함
     expect(request).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('프로필 원본 메타데이터로 Presigned URL을 요청한다', async () => {
+    const file = new File(['profile-image'], 'profile.png', {
+      type: 'image/png',
+    });
+    const target = profileUploadTarget();
+    const signal = new AbortController().signal;
+    request.mockResolvedValueOnce({ data: target });
+
+    await expect(
+      requestProfileImageUploadUrl(file, { signal }),
+    ).resolves.toEqual(target);
+
+    // 프로필은 게시글과 달리 썸네일 없이 원본 한 장의 정보만 전달한다.
+    expect(request).toHaveBeenCalledWith(
+      '/uploads/profile-image/presigned-url',
+      {
+        method: 'POST',
+        body: {
+          fileName: 'profile.png',
+          contentType: 'image/png',
+          size: file.size,
+        },
+        signal,
+      },
+    );
+  });
+
+  it('프로필 이미지를 S3에 PUT하고 저장할 Object Key를 반환한다', async () => {
+    const file = new File(['profile-image'], 'profile.png', {
+      type: 'image/png',
+    });
+    const target = profileUploadTarget();
+    request.mockResolvedValueOnce({ data: target });
+    fetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
+
+    await expect(uploadProfileImage(file)).resolves.toBe(target.objectKey);
+
+    // 사용자 수정 API에는 Presigned URL이 아니라 이 PUT이 완료된 Object Key를 전달한다.
+    expect(fetch).toHaveBeenCalledWith(
+      target.uploadUrl,
+      expect.objectContaining({
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/png' },
+        body: file,
+        credentials: 'omit',
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('프로필 이미지의 S3 업로드 실패를 전용 오류로 구분한다', async () => {
+    request.mockResolvedValueOnce({ data: profileUploadTarget() });
+    fetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
+
+    const error = await uploadProfileImage(
+      new File(['profile'], 'profile.png', { type: 'image/png' }),
+    ).catch((caughtError) => caughtError);
+
+    expect(error).toBeInstanceOf(ProfileImageUploadError);
+    expect(error).toMatchObject({
+      code: 'PROFILE_IMAGE_UPLOAD_FAILED',
+      status: 403,
+    });
   });
 });

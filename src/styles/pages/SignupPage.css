@@ -117,7 +117,12 @@
   background: #fff7ed;
   color: var(--color-primary);
   font-size: 30px;
-  cursor: pointer;
+}
+
+.signup-profile__preview.is-default {
+  padding: 18px;
+  border-style: solid;
+  background: #fff7ed;
 }
 
 .signup-profile__preview img {
@@ -126,61 +131,8 @@
   object-fit: cover;
 }
 
-.signup-profile__overlay {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  height: 26px;
-  align-items: center;
-  justify-content: center;
-  background: rgba(67, 35, 13, 0.65);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.signup-profile__input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  clip-path: inset(50%);
-}
-
-.signup-profile__input:focus-visible + .signup-profile__selection,
-.signup-profile__preview:has(+ .signup-profile__input:focus-visible) {
-  outline: 3px solid rgba(249, 115, 22, 0.25);
-  outline-offset: 3px;
-}
-
-.signup-profile__selection {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: -2px 0 5px;
-  color: var(--color-muted);
-  font-size: 10px;
-}
-
-.signup-profile__selection span {
-  max-width: 230px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.signup-profile__selection button {
-  padding: 2px 5px;
-  border: 0;
-  background: transparent;
-  color: #dc2626;
-  font-size: 10px;
-  font-weight: 700;
+.signup-profile__guide {
+  text-align: center;
 }
 
 .signup-form__group {

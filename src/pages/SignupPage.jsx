@@ -54,13 +54,6 @@ export default function SignupPage() {
   const [showNetworkSpinner, setShowNetworkSpinner] = useState(false);
   const signupAbortControllerRef = useRef(null);
 
-  // S3 업로드 도입 전까지 선택 파일과 브라우저 임시 미리보기만 관리
-  const [selectedProfileImage, setSelectedProfileImage] = useState(null);
-  const [profilePreviewUrl, setProfilePreviewUrl] = useState('');
-  const [profileImageError, setProfileImageError] = useState('');
-  const profilePreviewUrlRef = useRef('');
-  const profileImageInputRef = useRef(null);
-
   // 인증 사용자가 회원가입 화면에 접근하면 게시글 목록으로 이동
   useEffect(() => {
     if (status === AUTH_STATUS.AUTHENTICATED) {
@@ -70,10 +63,6 @@ export default function SignupPage() {
 
   useEffect(
     () => () => {
-      // 페이지 이동 시 브라우저가 만든 blob 미리보기 URL 해제
-      if (profilePreviewUrlRef.current) {
-        URL.revokeObjectURL(profilePreviewUrlRef.current);
-      }
       signupAbortControllerRef.current?.abort();
     },
     [],
@@ -105,7 +94,6 @@ export default function SignupPage() {
     Object.values(localErrors).every((error) => !error) &&
     isEmailChecked &&
     isNicknameChecked &&
-    !profileImageError &&
     !isSubmitting &&
     !isRestoringSession;
 
@@ -137,49 +125,6 @@ export default function SignupPage() {
     };
 
     return validators[name]();
-  }
-
-  function clearProfilePreview() {
-    if (profilePreviewUrlRef.current) {
-      URL.revokeObjectURL(profilePreviewUrlRef.current);
-      profilePreviewUrlRef.current = '';
-    }
-
-    setSelectedProfileImage(null);
-    setProfilePreviewUrl('');
-
-    if (profileImageInputRef.current) {
-      // 같은 파일을 다시 골라도 change 이벤트가 발생하도록 input 초기화
-      profileImageInputRef.current.value = '';
-    }
-  }
-
-  function handleProfileImageChange(event) {
-    const [file] = event.target.files;
-    setProfileImageError('');
-
-    if (!file) {
-      clearProfilePreview();
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      clearProfilePreview();
-      setProfileImageError('이미지 파일만 선택할 수 있습니다.');
-      return;
-    }
-
-    // 이전 파일의 임시 URL을 먼저 해제한 후 새 미리보기 생성
-    clearProfilePreview();
-    const nextPreviewUrl = URL.createObjectURL(file);
-    profilePreviewUrlRef.current = nextPreviewUrl;
-    setSelectedProfileImage(file);
-    setProfilePreviewUrl(nextPreviewUrl);
-  }
-
-  function removeProfileImage() {
-    clearProfilePreview();
-    setProfileImageError('');
   }
 
   function handleChange(event) {
@@ -285,8 +230,6 @@ export default function SignupPage() {
           email: values.email,
           nickname: values.nickname,
           password: values.password,
-          // S3 업로드 API가 없으므로 로컬 blob URL이나 파일명을 저장하지 않음
-          profileImage: null,
         },
         { signal: abortController.signal },
       );
@@ -347,47 +290,18 @@ export default function SignupPage() {
             <form className="signup-form" noValidate onSubmit={handleSubmit}>
               <div className="signup-profile">
                 <span className="signup-form__label">프로필 이미지</span>
-                <label
-                  className="signup-profile__preview"
-                  htmlFor="profileImage"
-                  aria-label={
-                    selectedProfileImage
-                      ? '프로필 이미지 변경'
-                      : '프로필 이미지 추가'
-                  }
+                <div className="signup-profile__preview is-default">
+                  <img
+                    src="/kmap_icon.svg"
+                    alt="기본 프로필 이미지"
+                  />
+                </div>
+                <p
+                  id="profileImage-helper"
+                  className="signup-form__helper is-guide signup-profile__guide"
                 >
-                  {profilePreviewUrl ? (
-                    <img src={profilePreviewUrl} alt="프로필 미리보기" />
-                  ) : (
-                    <span aria-hidden="true">+</span>
-                  )}
-                  {profilePreviewUrl && (
-                    <span className="signup-profile__overlay">변경</span>
-                  )}
-                </label>
-                <input
-                  ref={profileImageInputRef}
-                  id="profileImage"
-                  type="file"
-                  className="signup-profile__input"
-                  accept="image/*"
-                  onChange={handleProfileImageChange}
-                  aria-invalid={Boolean(profileImageError)}
-                  aria-describedby="profileImage-helper"
-                />
-
-                {selectedProfileImage && (
-                  <div className="signup-profile__selection">
-                    <span>{selectedProfileImage.name}</span>
-                    <button type="button" onClick={removeProfileImage}>
-                      제거
-                    </button>
-                  </div>
-                )}
-
-                <p id="profileImage-helper" className="signup-form__helper">
-                  {profileImageError ||
-                    '현재는 미리보기만 제공되며 저장되지 않습니다.'}
+                  프로필 사진 변경은 로그인 후 회원 정보 수정에서
+                  가능합니다.
                 </p>
               </div>
 

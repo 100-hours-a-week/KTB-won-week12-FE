@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkNicknameAvailability } from '../api/authApi';
 import { deleteCurrentUser, updateCurrentUser } from '../api/userApi';
+import { uploadProfileImage } from '../api/uploadApi';
 import { AuthContext } from '../auth/AuthContext';
 import ProfileSettingsPage from './ProfileSettingsPage';
 
@@ -14,6 +15,10 @@ vi.mock('../api/authApi', () => ({
 vi.mock('../api/userApi', () => ({
   deleteCurrentUser: vi.fn(),
   updateCurrentUser: vi.fn(),
+}));
+
+vi.mock('../api/uploadApi', () => ({
+  uploadProfileImage: vi.fn(),
 }));
 
 vi.mock('../components/AppHeader', () => ({
@@ -27,6 +32,7 @@ vi.mock('../components/Portal', () => ({
 const CURRENT_USER = {
   email: 'user@example.com',
   nickname: '기존닉네임',
+  profileImageObjectKey: 'profiles/1/old-id/original.jpg',
   profileImage: 'https://example.com/profile.jpg',
 };
 
@@ -60,12 +66,17 @@ describe('ProfileSettingsPage', () => {
   beforeEach(() => {
     checkNicknameAvailability.mockReset();
     updateCurrentUser.mockReset();
+    uploadProfileImage.mockReset();
     deleteCurrentUser.mockReset();
     checkNicknameAvailability.mockResolvedValue(true);
     updateCurrentUser.mockResolvedValue({
       nickname: '새닉네임',
+      profileImageObjectKey: CURRENT_USER.profileImageObjectKey,
       profileImage: CURRENT_USER.profileImage,
     });
+    uploadProfileImage.mockResolvedValue(
+      'profiles/1/new-id/original.png',
+    );
     deleteCurrentUser.mockResolvedValue(undefined);
 
     Object.defineProperty(URL, 'createObjectURL', {
@@ -110,11 +121,12 @@ describe('ProfileSettingsPage', () => {
     });
     expect(updateCurrentUser).toHaveBeenCalledWith({
       nickname: '새닉네임',
-      profileImage: CURRENT_USER.profileImage,
+      profileImageObjectKey: CURRENT_USER.profileImageObjectKey,
     });
     expect(authValue.replaceCurrentUser).toHaveBeenCalledWith({
       email: CURRENT_USER.email,
       nickname: '새닉네임',
+      profileImageObjectKey: CURRENT_USER.profileImageObjectKey,
       profileImage: CURRENT_USER.profileImage,
     });
   });
@@ -134,7 +146,7 @@ describe('ProfileSettingsPage', () => {
     expect(updateCurrentUser).not.toHaveBeenCalled();
   });
 
-  it('새 프로필 이미지는 로컬 미리보기만 제공하고 제거할 수 있다', async () => {
+  it('새 프로필 이미지를 미리 표시하고 선택을 취소할 수 있다', async () => {
     const user = userEvent.setup();
     renderProfileSettings();
     const imageFile = new File(['image'], 'new-profile.png', {
@@ -150,12 +162,69 @@ describe('ProfileSettingsPage', () => {
     );
     expect(screen.getByText('new-profile.png')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '제거' }));
+    await user.click(screen.getByRole('button', { name: '선택 취소' }));
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:new-profile');
     expect(screen.getByAltText('프로필 미리보기')).toHaveAttribute(
       'src',
       CURRENT_USER.profileImage,
     );
+  });
+
+  it('새 프로필 이미지를 S3에 올린 뒤 Object Key로 사용자 정보를 수정한다', async () => {
+    const user = userEvent.setup();
+    const authValue = renderProfileSettings();
+    const imageFile = new File(['image'], 'new-profile.png', {
+      type: 'image/png',
+    });
+    updateCurrentUser.mockResolvedValueOnce({
+      nickname: CURRENT_USER.nickname,
+      profileImageObjectKey: 'profiles/1/new-id/original.png',
+      profileImage: 'https://bucket.example/new-profile',
+    });
+
+    await user.upload(
+      await screen.findByLabelText('프로필 이미지 변경'),
+      imageFile,
+    );
+    await user.click(screen.getByRole('button', { name: '수정하기' }));
+
+    // 파일 바이너리를 먼저 S3에 저장하고 성공한 Key만 PATCH 요청으로 전달한다.
+    expect(uploadProfileImage).toHaveBeenCalledWith(imageFile, {
+      signal: expect.any(AbortSignal),
+    });
+    expect(updateCurrentUser).toHaveBeenCalledWith({
+      nickname: CURRENT_USER.nickname,
+      profileImageObjectKey: 'profiles/1/new-id/original.png',
+    });
+    expect(authValue.replaceCurrentUser).toHaveBeenCalledWith({
+      email: CURRENT_USER.email,
+      nickname: CURRENT_USER.nickname,
+      profileImageObjectKey: 'profiles/1/new-id/original.png',
+      profileImage: 'https://bucket.example/new-profile',
+    });
+  });
+
+  it('기존 프로필 이미지 삭제를 선택하면 null Object Key를 전송한다', async () => {
+    const user = userEvent.setup();
+    renderProfileSettings();
+    updateCurrentUser.mockResolvedValueOnce({
+      nickname: CURRENT_USER.nickname,
+      profileImageObjectKey: null,
+      profileImage: null,
+    });
+
+    await screen.findByDisplayValue(CURRENT_USER.nickname);
+    await user.click(
+      screen.getByRole('button', { name: '프로필 이미지 삭제' }),
+    );
+    expect(screen.getByRole('button', { name: '수정하기' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: '수정하기' }));
+
+    expect(uploadProfileImage).not.toHaveBeenCalled();
+    expect(updateCurrentUser).toHaveBeenCalledWith({
+      nickname: CURRENT_USER.nickname,
+      profileImageObjectKey: null,
+    });
   });
 
   it('회원 탈퇴 사유를 trim해 전송하고 세션을 제거한다', async () => {
