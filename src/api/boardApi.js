@@ -1,4 +1,5 @@
 import { request } from './httpClient';
+import { hasValidBoardVoteDetail } from './voteApi';
 
 // 초기 조회와 추가 조회에서 동일하게 사용할 페이지 크기
 export const BOARD_PAGE_SIZE = 8;
@@ -78,7 +79,9 @@ export async function getBoard(boardId, { signal } = {}) {
     !Array.isArray(board.images) ||
     // 이미지가 있다면 Object Key와 원본·썸네일 Presigned GET URL을 모두 검증
     board.images.some((image) => !hasValidDetailImage(image)) ||
-    !board.author
+    !board.author ||
+    // 백엔드는 투표가 없을 때도 vote: null을 명시하므로 필드 누락은 계약 오류
+    !hasValidBoardVoteDetail(board.vote)
   ) {
     throw new TypeError('게시글 상세 응답 형식이 올바르지 않습니다.');
   }

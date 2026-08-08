@@ -14,6 +14,13 @@ const COMMON_CODE_MESSAGES = {
   ACCESS_DENIED: '이 작업을 수행할 권한이 없습니다.',
   USER_DELETED: '탈퇴한 계정은 이용할 수 없습니다.',
   USER_NOT_FOUND: '사용자 정보를 찾을 수 없습니다.',
+  VOTE_SCORE_OUT_OF_RANGE: '과실 비율을 다시 선택해주세요.',
+  VOTE_LABEL_REQUIRED: '양쪽 투표 대상을 모두 입력해주세요.',
+  VOTE_LABEL_LENGTH_LIMIT: '투표 대상은 2자 이상 20자 이하로 입력해주세요.',
+  VOTE_LABEL_DUPLICATED: '양쪽 투표 대상은 서로 다르게 입력해주세요.',
+  VOTE_DURATION_OUT_OF_RANGE: '투표 기간은 1시간 이상 168시간 이하로 입력해주세요.',
+  BOARD_VOTE_NOT_FOUND: '이 게시글에는 투표가 없습니다.',
+  BOARD_VOTE_CLOSED: '이미 종료된 투표입니다.',
 };
 
 const COMMON_STATUS_MESSAGES = {

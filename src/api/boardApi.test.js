@@ -20,6 +20,7 @@ const BOARD = {
   thumbnailImageUrl: null,
   images: [],
   author: { nickname: '작성자' },
+  vote: null,
 };
 
 describe('boardApi', () => {
@@ -77,6 +78,33 @@ describe('boardApi', () => {
     request.mockResolvedValueOnce({ data: BOARD });
     await expect(getBoard(1)).resolves.toBe(BOARD);
     expect(request).toHaveBeenCalledWith('/boards/1', { signal: undefined });
+  });
+
+  it('게시글 상세의 nullable 투표 계약을 검증한다', async () => {
+    const boardWithVote = {
+      ...BOARD,
+      vote: {
+        voteId: 10,
+        leftLabel: 'A 차량',
+        rightLabel: 'B 차량',
+        status: 'OPEN',
+        startedAt: '2026-08-08T12:00:00',
+        endsAt: '2026-08-09T12:00:00',
+        totalVoteCount: 1,
+        result: { leftScore: 6, rightScore: 4 },
+        myVote: { leftScore: 3, rightScore: 7 },
+      },
+    };
+    request.mockResolvedValueOnce({ data: boardWithVote });
+
+    await expect(getBoard(1)).resolves.toBe(boardWithVote);
+
+    request.mockResolvedValueOnce({
+      data: { ...BOARD, vote: undefined },
+    });
+    await expect(getBoard(1)).rejects.toThrow(
+      '게시글 상세 응답 형식이 올바르지 않습니다.',
+    );
   });
 
   it('상세 이미지의 Object Key 또는 Presigned GET URL이 누락되면 오류를 반환한다', async () => {

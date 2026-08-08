@@ -29,6 +29,18 @@ describe('getUserFriendlyErrorMessage', () => {
     ).toBe('다시 로그인하세요.');
   });
 
+  it('투표 업무 오류 코드를 사용자 안내 문구로 변환한다', () => {
+    expect(getUserFriendlyErrorMessage({ code: 'BOARD_VOTE_CLOSED' })).toBe(
+      '이미 종료된 투표입니다.',
+    );
+    expect(getUserFriendlyErrorMessage({ code: 'BOARD_VOTE_NOT_FOUND' })).toBe(
+      '이 게시글에는 투표가 없습니다.',
+    );
+    expect(getUserFriendlyErrorMessage({ code: 'VOTE_SCORE_OUT_OF_RANGE' })).toBe(
+      '과실 비율을 다시 선택해주세요.',
+    );
+  });
+
   it('매핑되지 않은 백엔드 업무 메시지는 원문을 유지한다', () => {
     expect(
       getUserFriendlyErrorMessage({ status: 409, message: '이미 투표했습니다.' }),
