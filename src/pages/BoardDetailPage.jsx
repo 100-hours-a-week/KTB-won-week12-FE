@@ -631,7 +631,18 @@ export default function BoardDetailPage() {
 
             {/* 투표를 생성하지 않은 게시글은 상세 화면에 투표 영역 자체를 만들지 않는다. */}
             {board.vote && (
-              <BoardVoteSection boardId={boardId} vote={board.vote} />
+              <BoardVoteSection
+                boardId={boardId}
+                vote={board.vote}
+                isAuthenticated={isAuthenticated}
+                isAuthLoading={isAuthLoading}
+                // 좋아요·댓글과 동일한 Portal 모달을 사용해 갑작스러운 화면 이동을 막는다.
+                onLoginRequired={() =>
+                  requestLogin(
+                    '투표하려면 로그인이 필요합니다. 로그인하시겠습니까?',
+                  )
+                }
+              />
             )}
 
             <section className="board-stats" aria-label="게시글 통계">

@@ -173,6 +173,34 @@ describe('BoardDetailPage', () => {
     expect(screen.getByText('B 차량')).toBeInTheDocument();
   });
 
+  it('미인증 사용자가 투표를 누르면 Portal 로그인 안내 모달을 표시한다', async () => {
+    const user = userEvent.setup();
+    getBoard.mockResolvedValueOnce({
+      ...BOARD,
+      vote: {
+        voteId: 10,
+        leftLabel: 'A 차량',
+        rightLabel: 'B 차량',
+        status: 'OPEN',
+        startedAt: '2026-08-08T12:00:00',
+        endsAt: '2026-08-09T12:00:00',
+        totalVoteCount: 0,
+        result: null,
+        myVote: null,
+      },
+    });
+    renderBoardDetail({ status: AUTH_STATUS.UNAUTHENTICATED });
+
+    await user.click(
+      await screen.findByRole('button', { name: '로그인 후 투표하기' }),
+    );
+
+    // BoardVoteSection은 모달 구현을 소유하지 않고 상세 페이지의 공통 Portal 흐름을 호출한다.
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      '투표하려면 로그인이 필요합니다. 로그인하시겠습니까?',
+    );
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
