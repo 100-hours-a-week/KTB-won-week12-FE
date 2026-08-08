@@ -21,6 +21,12 @@ const EMPTY_VALUES = {
   content: '',
 };
 
+const EMPTY_VOTE_VALUES = {
+  leftLabel: '',
+  rightLabel: '',
+  durationHours: '24',
+};
+
 function validateTitle(title) {
   const trimmedTitle = title.trim();
 
@@ -39,12 +45,64 @@ function validateContent(content) {
   return content.trim() ? '' : '내용을 입력해주세요.';
 }
 
-function createPayload(values, images) { // 백엔드 게시글 생성·수정 API에 전송할 요청 본문 생성
+function validateVoteLabel(label) {
+  const normalizedLabel = label.trim();
+
+  if (!normalizedLabel) {
+    return '투표 대상을 입력해주세요.';
+  }
+
+  if (normalizedLabel.length < 2 || normalizedLabel.length > 20) {
+    return '투표 대상은 2자 이상 20자 이하로 입력해주세요.';
+  }
+
+  return '';
+}
+
+function validateVote(voteValues) { // trim 이후 라벨과 정수 시간 범위를 백엔드 정책과 동일하게 검증
+  const leftLabelError = validateVoteLabel(voteValues.leftLabel);
+  const rightLabelError = validateVoteLabel(voteValues.rightLabel);
+  const durationHours = Number(voteValues.durationHours);
+
   return {
+    leftLabel: leftLabelError,
+    rightLabel: rightLabelError,
+    duplicated:
+      !leftLabelError &&
+      !rightLabelError &&
+      voteValues.leftLabel.trim() === voteValues.rightLabel.trim()
+        ? '양쪽 투표 대상은 서로 달라야 합니다.'
+        : '',
+    durationHours:
+      !Number.isInteger(durationHours) ||
+      durationHours < 1 ||
+      durationHours > 168
+        ? '투표 기간은 1시간 이상 168시간 이하로 입력해주세요.'
+        : '',
+  };
+}
+
+function createPayload(values, images, vote) { // 백엔드 게시글 생성·수정 API에 전송할 요청 본문 생성
+  const payload = {
     title: values.title.trim(),
     content: values.content.trim(),
     // Presigned URL은 만료되므로 게시글에는 S3 Object Key 쌍만 전송
     images,
+  };
+
+  // 수정 요청에서는 vote를 undefined로 전달해 생성 전용 필드가 포함되지 않게 한다.
+  return vote === undefined ? payload : { ...payload, vote };
+}
+
+function createVotePayload(voteEnabled, voteValues) {
+  if (!voteEnabled) {
+    return null;
+  }
+
+  return {
+    leftLabel: voteValues.leftLabel.trim(),
+    rightLabel: voteValues.rightLabel.trim(),
+    durationHours: Number(voteValues.durationHours),
   };
 }
 
@@ -102,6 +160,8 @@ export default function BoardFormPage({ mode }) {
     String(boardId) === boardIdParam;
 
   const [values, setValues] = useState(EMPTY_VALUES);
+  const [voteEnabled, setVoteEnabled] = useState(false);
+  const [voteValues, setVoteValues] = useState(EMPTY_VOTE_VALUES);
   const [imageItems, setImageItems] = useState([]);
   const [imageError, setImageError] = useState('');
   const [activePreviewId, setActivePreviewId] = useState(null);
@@ -117,6 +177,11 @@ export default function BoardFormPage({ mode }) {
     title: false,
     content: false,
   });
+  const [touchedVoteFields, setTouchedVoteFields] = useState({
+    leftLabel: false,
+    rightLabel: false,
+    durationHours: false,
+  });
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // idle → processing(썸네일 생성) → uploading(S3 PUT) → saving(게시글 API) 순서
@@ -125,11 +190,15 @@ export default function BoardFormPage({ mode }) {
 
   const titleError = validateTitle(values.title);
   const contentError = validateContent(values.content);
+  const voteErrors = validateVote(voteValues);
   const activePreview = imageItems.find(
     (image) => image.id === activePreviewId,
   );
 
-  const isFormValid = !titleError && !contentError && !imageError;
+  const isVoteValid =
+    !voteEnabled || Object.values(voteErrors).every((error) => !error);
+  const isFormValid =
+    !titleError && !contentError && !imageError && isVoteValid;
   // 텍스트와 이미지 변경을 분리해 이미지 추가·삭제만 한 경우도 명확하게 감지
   const hasTextChanges =
     initialPayload != null &&
@@ -251,6 +320,15 @@ export default function BoardFormPage({ mode }) {
     setSubmitError('');
   }
 
+  function updateVoteValue(event) {
+    const { name, value } = event.target;
+    setVoteValues((currentValues) => ({
+      ...currentValues,
+      [name]: value,
+    }));
+    setSubmitError('');
+  }
+
   function handleImageFiles(event) { // 사용자가 새로 선택한 로컬 이미지 검증 및 미리보기 상태 추가
     // FileList는 배열 메소드를 바로 사용할 수 없으므로 일반 배열로 변환
     const selectedFiles = Array.from(event.target.files ?? []);
@@ -330,6 +408,13 @@ export default function BoardFormPage({ mode }) {
     event.preventDefault();
     setHasSubmitted(true);
     setTouchedFields({ title: true, content: true });
+    if (voteEnabled) {
+      setTouchedVoteFields({
+        leftLabel: true,
+        rightLabel: true,
+        durationHours: true,
+      });
+    }
     setSubmitError('');
 
     if (!canSubmit) {
@@ -375,7 +460,11 @@ export default function BoardFormPage({ mode }) {
         return uploadedKeys;
       });
       // 기존 Key와 새 Key를 합친 뒤 만료되는 Presigned URL 없이 게시글 payload 생성
-      const payload = createPayload(values, images);
+      const payload = createPayload(
+        values,
+        images,
+        isEditMode ? undefined : createVotePayload(voteEnabled, voteValues),
+      );
 
       // 이미지 업로드가 끝난 뒤에만 Object Key가 포함된 게시글 API 호출
       setSubmitStage('saving');
@@ -596,16 +685,127 @@ export default function BoardFormPage({ mode }) {
                 </p>
               </fieldset>
 
-              {/* 투표 관련 값은 백엔드 요청 본문에 포함하지 않는 안내 UI */}
-              <section
-                className="board-vote-preview"
-                aria-labelledby="board-vote-preview-title"
-              >
-                <div>
-                  <h3 id="board-vote-preview-title">과실 투표</h3>
-                </div>
-                <span>준비 중</span>
-              </section>
+              {!isEditMode && (
+                <fieldset className="board-vote-fields">
+                  <legend>과실 투표</legend>
+                  <div className="board-vote-fields__toggle-row">
+                    <div>
+                      <strong>과실 투표 추가</strong>
+                      <p>두 차량의 과실 비율에 대한 의견을 받아보세요.</p>
+                    </div>
+                    <label className="board-vote-toggle">
+                      <input
+                        type="checkbox"
+                        checked={voteEnabled}
+                        disabled={isSubmitting}
+                        onChange={(event) => {
+                          setVoteEnabled(event.target.checked);
+                          setSubmitError('');
+                        }}
+                      />
+                      <span aria-hidden="true" />
+                      <span className="board-vote-toggle__label">
+                        과실 투표 추가
+                      </span>
+                    </label>
+                  </div>
+
+                  {voteEnabled && (
+                    <div className="board-vote-fields__inputs">
+                      <div className="board-vote-fields__target">
+                        <label htmlFor="board-vote-left-label">왼쪽 대상*</label>
+                        <input
+                          id="board-vote-left-label"
+                          name="leftLabel"
+                          type="text"
+                          maxLength="20"
+                          placeholder="예: A 차량"
+                          value={voteValues.leftLabel}
+                          disabled={isSubmitting}
+                          onChange={updateVoteValue}
+                          onBlur={() =>
+                            setTouchedVoteFields((currentFields) => ({
+                              ...currentFields,
+                              leftLabel: true,
+                            }))
+                          }
+                          aria-invalid={
+                            Boolean(voteErrors.leftLabel || voteErrors.duplicated) &&
+                            (touchedVoteFields.leftLabel || hasSubmitted)
+                          }
+                          aria-describedby="board-vote-left-helper"
+                        />
+                        <p id="board-vote-left-helper" className="board-form__helper">
+                          {(touchedVoteFields.leftLabel || hasSubmitted) &&
+                            (voteErrors.leftLabel || voteErrors.duplicated)}
+                        </p>
+                      </div>
+
+                      <div className="board-vote-fields__target">
+                        <label htmlFor="board-vote-right-label">오른쪽 대상*</label>
+                        <input
+                          id="board-vote-right-label"
+                          name="rightLabel"
+                          type="text"
+                          maxLength="20"
+                          placeholder="예: B 차량"
+                          value={voteValues.rightLabel}
+                          disabled={isSubmitting}
+                          onChange={updateVoteValue}
+                          onBlur={() =>
+                            setTouchedVoteFields((currentFields) => ({
+                              ...currentFields,
+                              rightLabel: true,
+                            }))
+                          }
+                          aria-invalid={
+                            Boolean(voteErrors.rightLabel || voteErrors.duplicated) &&
+                            (touchedVoteFields.rightLabel || hasSubmitted)
+                          }
+                          aria-describedby="board-vote-right-helper"
+                        />
+                        <p id="board-vote-right-helper" className="board-form__helper">
+                          {(touchedVoteFields.rightLabel || hasSubmitted) &&
+                            (voteErrors.rightLabel || voteErrors.duplicated)}
+                        </p>
+                      </div>
+
+                      <div className="board-vote-fields__duration">
+                        <label htmlFor="board-vote-duration">투표 기간*</label>
+                        <div>
+                          <input
+                            id="board-vote-duration"
+                            name="durationHours"
+                            type="number"
+                            min="1"
+                            max="168"
+                            step="1"
+                            value={voteValues.durationHours}
+                            disabled={isSubmitting}
+                            onChange={updateVoteValue}
+                            onBlur={() =>
+                              setTouchedVoteFields((currentFields) => ({
+                                ...currentFields,
+                                durationHours: true,
+                              }))
+                            }
+                            aria-invalid={
+                              Boolean(voteErrors.durationHours) &&
+                              (touchedVoteFields.durationHours || hasSubmitted)
+                            }
+                            aria-describedby="board-vote-duration-helper"
+                          />
+                          <span>시간</span>
+                        </div>
+                        <p id="board-vote-duration-helper" className="board-form__helper">
+                          {(touchedVoteFields.durationHours || hasSubmitted) &&
+                            voteErrors.durationHours}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </fieldset>
+              )}
 
               {submitError && (
                 <p className="board-form__submit-error" role="alert">

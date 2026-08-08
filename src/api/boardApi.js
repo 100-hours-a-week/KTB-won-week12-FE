@@ -135,10 +135,11 @@ function validateBoardMutationResponse(response, operationName) {
   return response.data;
 }
 
-export async function createBoard({ title, content, images }) {
+export async function createBoard({ title, content, images, vote }) {
   const response = await request('/boards', {
     method: 'POST',
-    body: { title, content, images },
+    // vote는 토글이 꺼지면 null, 켜지면 대상과 기간을 담은 생성 전용 값
+    body: { title, content, images, vote },
   });
 
   return validateBoardMutationResponse(response, '생성');

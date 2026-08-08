@@ -116,7 +116,7 @@ describe('boardApi', () => {
 
   it('게시글 생성과 수정 요청의 본문 및 응답 ID를 검증한다', async () => {
     // 이미지 URL 대신 백엔드가 검증·저장할 원본/썸네일 Object Key 쌍 전송
-    const body = {
+    const mutationBody = {
       title: '제목',
       content: '내용',
       images: [
@@ -126,19 +126,27 @@ describe('boardApi', () => {
         },
       ],
     };
+    const createBody = {
+      ...mutationBody,
+      vote: {
+        leftLabel: 'A 차량',
+        rightLabel: 'B 차량',
+        durationHours: 24,
+      },
+    };
     request
       .mockResolvedValueOnce({ data: { boardId: 2 } })
       .mockResolvedValueOnce({ data: { boardId: 2 } });
 
-    await expect(createBoard(body)).resolves.toEqual({ boardId: 2 });
-    await expect(updateBoard(2, body)).resolves.toEqual({ boardId: 2 });
+    await expect(createBoard(createBody)).resolves.toEqual({ boardId: 2 });
+    await expect(updateBoard(2, mutationBody)).resolves.toEqual({ boardId: 2 });
     expect(request).toHaveBeenNthCalledWith(1, '/boards', {
       method: 'POST',
-      body,
+      body: createBody,
     });
     expect(request).toHaveBeenNthCalledWith(2, '/boards/2', {
       method: 'PATCH',
-      body,
+      body: mutationBody,
     });
   });
 

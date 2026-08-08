@@ -164,6 +164,63 @@ describe('BoardFormPage', () => {
       title: '새 사고 제목',
       content: '새 사고 내용',
       images: [],
+      vote: null,
+    });
+  });
+
+  it('투표 토글을 켜면 대상과 기간을 검증한다', async () => {
+    const user = userEvent.setup();
+    renderBoardForm();
+    await enterBoardValues(user);
+
+    await user.click(screen.getByRole('checkbox', { name: '과실 투표 추가' }));
+
+    // 토글을 켠 순간 필수 투표값이 비어 있으므로 게시글 제출도 함께 차단
+    expect(screen.getByLabelText('왼쪽 대상*')).toBeInTheDocument();
+    expect(screen.getByLabelText('오른쪽 대상*')).toBeInTheDocument();
+    expect(screen.getByLabelText('투표 기간*')).toHaveValue(24);
+    expect(screen.getByRole('button', { name: '사례 등록하기' })).toBeDisabled();
+
+    await user.type(screen.getByLabelText('왼쪽 대상*'), 'A 차량');
+    await user.type(screen.getByLabelText('오른쪽 대상*'), 'A 차량');
+    await user.tab();
+
+    expect(screen.getAllByText('양쪽 투표 대상은 서로 달라야 합니다.'))
+      .toHaveLength(2);
+
+    const durationInput = screen.getByLabelText('투표 기간*');
+    await user.clear(durationInput);
+    await user.type(durationInput, '169');
+    await user.tab();
+    expect(
+      screen.getByText('투표 기간은 1시간 이상 168시간 이하로 입력해주세요.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '사례 등록하기' })).toBeDisabled();
+  });
+
+  it('활성화한 투표값을 trim하고 기간을 숫자로 변환해 생성 요청에 포함한다', async () => {
+    const user = userEvent.setup();
+    renderBoardForm();
+    await enterBoardValues(user);
+    await user.click(screen.getByRole('checkbox', { name: '과실 투표 추가' }));
+    await user.type(screen.getByLabelText('왼쪽 대상*'), '  A 차량  ');
+    await user.type(screen.getByLabelText('오른쪽 대상*'), '  B 차량  ');
+    const durationInput = screen.getByLabelText('투표 기간*');
+    await user.clear(durationInput);
+    await user.type(durationInput, '48');
+
+    await user.click(screen.getByRole('button', { name: '사례 등록하기' }));
+
+    expect(await screen.findByText('게시글 상세 도착')).toBeInTheDocument();
+    expect(createBoard).toHaveBeenCalledWith({
+      title: '새 사고 제목',
+      content: '새 사고 내용',
+      images: [],
+      vote: {
+        leftLabel: 'A 차량',
+        rightLabel: 'B 차량',
+        durationHours: 48,
+      },
     });
   });
 
@@ -252,6 +309,7 @@ describe('BoardFormPage', () => {
           thumbnailObjectKey: 'boards/7/new-0/thumbnail.webp',
         },
       ],
+      vote: null,
     });
   });
 
@@ -303,6 +361,10 @@ describe('BoardFormPage', () => {
     expect(screen.getByDisplayValue('기존 사고 내용')).toBeInTheDocument();
     expect(screen.getByText('기존 이미지 1')).toBeInTheDocument();
     expect(screen.getByText('등록된 이미지')).toBeInTheDocument();
+    // 생성 후에는 투표 대상과 기간을 바꿀 수 없으므로 수정 화면에 토글을 노출하지 않음
+    expect(
+      screen.queryByRole('checkbox', { name: '과실 투표 추가' }),
+    ).not.toBeInTheDocument();
     // 최초 snapshot과 동일한 상태에서는 불필요한 수정 요청을 차단
     expect(screen.getByRole('button', { name: '수정하기' })).toBeDisabled();
     expect(getBoard).toHaveBeenCalledWith(1, {
