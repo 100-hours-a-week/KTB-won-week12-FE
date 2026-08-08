@@ -52,6 +52,7 @@ const BOARD = {
   viewCount: 5,
   commentCount: 1,
   editableByMe: true,
+  vote: null,
 };
 
 // 상세 API는 각 이미지의 저장 Key와 원본·썸네일 GET URL을 함께 반환
@@ -146,6 +147,30 @@ describe('BoardDetailPage', () => {
     createComment.mockResolvedValue({ commentId: 11 });
     updateComment.mockResolvedValue({ commentId: 10 });
     deleteComment.mockResolvedValue(undefined);
+  });
+
+  it('투표가 있는 게시글에서 분리된 투표 영역을 렌더링한다', async () => {
+    getBoard.mockResolvedValueOnce({
+      ...BOARD,
+      vote: {
+        voteId: 10,
+        leftLabel: 'A 차량',
+        rightLabel: 'B 차량',
+        status: 'OPEN',
+        startedAt: '2026-08-08T12:00:00',
+        endsAt: '2026-08-09T12:00:00',
+        totalVoteCount: 0,
+        result: null,
+        myVote: null,
+      },
+    });
+
+    renderBoardDetail();
+
+    // BoardDetailPage가 vote 데이터를 전달하고 컴포넌트가 0건 상태를 표시하는지 확인
+    expect(await screen.findByText('투표를 시작해보세요.')).toBeInTheDocument();
+    expect(screen.getByText('A 차량')).toBeInTheDocument();
+    expect(screen.getByText('B 차량')).toBeInTheDocument();
   });
 
   afterEach(() => {

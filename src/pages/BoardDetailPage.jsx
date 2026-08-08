@@ -15,6 +15,7 @@ import {
 } from '../api/commentApi';
 import { AUTH_STATUS, useAuth } from '../auth/AuthContext';
 import AppHeader from '../components/AppHeader';
+import BoardVoteSection from '../components/BoardVoteSection';
 import CommentItem from '../components/CommentItem';
 import ConfirmModal from '../components/ConfirmModal';
 import DefaultProfileAvatar from '../components/DefaultProfileAvatar';
@@ -628,36 +629,10 @@ export default function BoardDetailPage() {
               <p className="board-detail__text">{board.content}</p>
             </section>
 
-            {/* 백엔드 투표 API가 준비되기 전까지 표시만 하는 비활성 UI */}
-            <section
-              className="vote-section"
-              aria-labelledby="vote-section-title"
-            >
-              <div className="vote-section__heading">
-                <div>
-                  <span className="vote-section__eyebrow">과실 투표</span>
-                  <h3 id="vote-section-title">
-                    어느 차량의 과실이 더 크다고 생각하나요?
-                  </h3>
-                </div>
-                <span className="vote-section__notice">준비 중</span>
-              </div>
-
-              <div className="vote-options">
-                <button type="button" className="vote-option" disabled>
-                  <span>A 차량</span>
-                  <strong>투표 준비 중</strong>
-                </button>
-                <span className="vote-versus">VS</span>
-                <button type="button" className="vote-option" disabled>
-                  <span>B 차량</span>
-                  <strong>투표 준비 중</strong>
-                </button>
-              </div>
-              <p className="vote-section__guide">
-                투표 기능은 백엔드 API 구현 후 제공됩니다.
-              </p>
-            </section>
+            {/* 투표를 생성하지 않은 게시글은 상세 화면에 투표 영역 자체를 만들지 않는다. */}
+            {board.vote && (
+              <BoardVoteSection boardId={boardId} vote={board.vote} />
+            )}
 
             <section className="board-stats" aria-label="게시글 통계">
               <button
